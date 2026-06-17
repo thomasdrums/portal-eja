@@ -1,0 +1,16 @@
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: var(--font-poppins);
+  --color-eja-dark: #0f2d52;
+  --color-eja-blue: #1565c0;
+  --color-eja-mid: #1e88e5;
+  --color-eja-light: #e8f4fd;
+  --color-eja-bg: #f5f8fc;
+}
+
+body {
+  background: #f5f8fc;
+  font-family: var(--font-poppins), system-ui, sans-serif;
+  color: #1a1a2e;
+}

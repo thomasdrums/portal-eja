@@ -1,0 +1,26 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(openssl rand *)",
+      "Bash(node -e \"console.log\\(require\\('crypto'\\).randomBytes\\(32\\).toString\\('base64'\\)\\)\")",
+      "Bash(npm view *)",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/next-auth/package.json'\\).version\\)\")",
+      "Bash(node -e \"console.log\\(require\\('./node_modules/bcryptjs/package.json'\\).version\\)\")",
+      "Bash(node -e ' *)",
+      "Bash(node -e \"console.log\\(JSON.stringify\\(require\\('./node_modules/eslint-config-next/package.json'\\).exports,null,2\\)\\)\")",
+      "Bash(curl -s -o /dev/null -w \"GET / -> %{http_code} -> redirect: %{redirect_url}\\\\n\" http://localhost:3000/)",
+      "Bash(curl -s -o /dev/null -w \"GET /aluno \\(no session\\) -> %{http_code} -> redirect: %{redirect_url}\\\\n\" http://localhost:3000/aluno)",
+      "Bash(curl -s -o /dev/null -w \"GET /login -> %{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(curl -s -b /tmp/cookies_aluno2.txt http://localhost:3000/aluno)",
+      "Bash(pkill -f \"next dev\")",
+      "Bash(pkill -f \"node.*next\")",
+      "PowerShell(Get-NetTCPConnection *)",
+      "PowerShell(Stop-Process *)",
+      "PowerShell(cd \"C:\\\\Users\\\\alves\\\\Documents\\\\EJA\"; $npm = \\(Get-Command npm\\).Source; Start-Process -NoNewWindow -FilePath $npm -ArgumentList \"run\", \"dev\" -RedirectStandardOutput \"C:\\\\Users\\\\alves\\\\AppData\\\\Local\\\\Temp\\\\eja-dev.log\" -RedirectStandardError \"C:\\\\Users\\\\alves\\\\AppData\\\\Local\\\\Temp\\\\eja-dev-err.log\"; Start-Sleep -Seconds 10; Get-Content \"C:\\\\Users\\\\alves\\\\AppData\\\\Local\\\\Temp\\\\eja-dev.log\" -ErrorAction SilentlyContinue; Get-Content \"C:\\\\Users\\\\alves\\\\AppData\\\\Local\\\\Temp\\\\eja-dev-err.log\" -ErrorAction SilentlyContinue)",
+      "PowerShell(\\(Get-Command npm\\).Source)",
+      "Bash(git init *)",
+      "Bash(git add *)",
+      "Bash(git commit -m ' *)"
+    ]
+  }
+}
