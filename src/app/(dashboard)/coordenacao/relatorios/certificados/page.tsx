@@ -71,9 +71,13 @@ export default function RelatorioCertificadosPage() {
 
       {/* Tabela */}
       <div className="overflow-hidden rounded-3xl bg-white shadow-md ring-1 ring-gray-100">
-        <div className="hidden grid-cols-5 gap-2 bg-gradient-to-r from-[#0f2d52] to-[#1565c0] px-5 py-3 text-xs font-bold uppercase tracking-wide text-white sm:grid">
-          <span>Nome</span><span>Polo</span><span>Turma</span><span className="text-center">Histórico</span>
+        <div className="hidden grid-cols-7 gap-2 bg-gradient-to-r from-[#0f2d52] to-[#1565c0] px-5 py-3 text-xs font-bold uppercase tracking-wide text-white sm:grid">
+          <span className="col-span-2">Nome</span>
+          <span>Turma</span>
+          <span className="text-center">Histórico</span>
           <span className="text-center">Certificado</span>
+          <span>Emissão</span>
+          <span>Entrega</span>
         </div>
         {filtered.length === 0 ? (
           <div className="flex h-32 items-center justify-center">
@@ -82,22 +86,23 @@ export default function RelatorioCertificadosPage() {
         ) : (
           <ul className="divide-y divide-gray-50">
             {filtered.map((a) => (
-              <li key={a.id} className="grid grid-cols-1 gap-1 px-5 py-4 text-sm sm:grid-cols-5 sm:items-center sm:gap-2">
-                <span className="font-semibold text-gray-800">{a.nome}</span>
-                <span className="text-gray-600">{a.polo}</span>
+              <li key={a.id} className="grid grid-cols-1 gap-1 px-5 py-4 text-sm sm:grid-cols-7 sm:items-center sm:gap-2">
+                <span className="col-span-2 font-semibold text-gray-800">{a.nome}<span className="ml-2 text-xs font-normal text-gray-400">{a.polo}</span></span>
                 <span className="text-gray-600">{a.turmaNome}</span>
                 <span className="text-center">
                   {a.documentacao.historicoEntregue
-                    ? <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">✓ Entregue</span>
-                    : <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">Pendente</span>}
+                    ? <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">✓</span>
+                    : <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">—</span>}
                 </span>
                 <span className="text-center">
                   {a.documentacao.certificadoRecebido
-                    ? <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">✓ Recebido</span>
+                    ? <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">Recebido</span>
                     : a.documentacao.certificadoEmitido
                     ? <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">Emitido</span>
                     : <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">Pendente</span>}
                 </span>
+                <span className="text-xs text-gray-500">{a.certificadoDataEmissao ?? "—"}</span>
+                <span className="text-xs text-gray-500">{a.certificadoDataEntrega ?? "—"}</span>
               </li>
             ))}
           </ul>

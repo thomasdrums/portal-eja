@@ -9,8 +9,10 @@ const navByRole: Record<Role, { href: string; label: string }[]> = {
     { href: "/professor/aulas",  label: "Aulas Gravadas" },
   ],
   COORDENACAO: [
-    { href: "/coordenacao",             label: "Visão geral" },
-    { href: "/coordenacao/relatorios",  label: "📊 Relatórios" },
+    { href: "/coordenacao",               label: "Visão Geral"     },
+    { href: "/coordenacao/gestao",        label: "Gestão"          },
+    { href: "/coordenacao/acompanhamento",label: "Acompanhamento"  },
+    { href: "/coordenacao/relatorios",    label: "Relatórios"      },
   ],
 };
 

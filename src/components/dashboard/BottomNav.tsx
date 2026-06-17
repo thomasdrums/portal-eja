@@ -54,7 +54,10 @@ const navByRole: Record<Role, NavItem[]> = {
     { href: "/professor", label: "Início", icon: (a) => <HomeIcon active={a} /> },
   ],
   COORDENACAO: [
-    { href: "/coordenacao", label: "Início", icon: (a) => <HomeIcon active={a} /> },
+    { href: "/coordenacao",                label: "Início",          icon: (a) => <HomeIcon     active={a} /> },
+    { href: "/coordenacao/gestao",         label: "Gestão",          icon: (a) => <StarIcon     active={a} /> },
+    { href: "/coordenacao/acompanhamento", label: "Turmas",          icon: (a) => <CalendarIcon active={a} /> },
+    { href: "/coordenacao/relatorios",     label: "Relatórios",      icon: (a) => <PlayIcon     active={a} /> },
   ],
 };
 

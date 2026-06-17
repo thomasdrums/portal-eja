@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { relatorioSolicitacoes, POLOS, type StatusSolicitacao } from "@/lib/mock-data/relatorios";
+import { relatorioSolicitacoes, POLOS, type StatusSolicitacao, type SolicitacaoRel } from "@/lib/mock-data/relatorios";
 
 const STATUSES: StatusSolicitacao[] = ["Recebida","Em análise","Em processamento","Concluída"];
 const TURMAS  = [...new Set(relatorioSolicitacoes.map((s) => s.turmaNome))].sort();
@@ -16,23 +16,29 @@ const statusColor: Record<StatusSolicitacao, string> = {
 };
 
 export default function RelatorioSolicitacoesPage() {
+  const [lista, setLista] = useState<SolicitacaoRel[]>(relatorioSolicitacoes);
   const [polo,   setPolo]   = useState("");
   const [turma,  setTurma]  = useState("");
   const [status, setStatus] = useState("");
   const [tipo,   setTipo]   = useState("");
 
   const filtered = useMemo(() =>
-    relatorioSolicitacoes.filter((s) =>
+    lista.filter((s) =>
       (!polo   || s.polo          === polo)   &&
       (!turma  || s.turmaNome     === turma)  &&
       (!status || s.status        === status) &&
       (!tipo   || s.tipoDocumento === tipo)
-    ), [polo, turma, status, tipo]);
+    ), [lista, polo, turma, status, tipo]);
 
   const contadores = STATUSES.map((st) => ({
     label: st,
-    value: relatorioSolicitacoes.filter((s) => s.status === st).length,
+    value: lista.filter((s) => s.status === st).length,
   }));
+
+  function atualizarStatus(id: string, novoStatus: StatusSolicitacao) {
+    // TODO: persistir no banco (Fase 2)
+    setLista((l) => l.map((s) => s.id === id ? { ...s, status: novoStatus } : s));
+  }
 
   function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
     return (
@@ -82,7 +88,7 @@ export default function RelatorioSolicitacoesPage() {
         <Select label="Tipo"   value={tipo}   onChange={setTipo}   options={TIPOS}      />
       </div>
 
-      {/* Tabela */}
+      {/* Tabela com alteração de status por linha */}
       <div className="overflow-hidden rounded-3xl bg-white shadow-md ring-1 ring-gray-100">
         <div className="hidden grid-cols-6 gap-2 bg-gradient-to-r from-[#0f2d52] to-[#1565c0] px-5 py-3 text-xs font-bold uppercase tracking-wide text-white sm:grid">
           <span>Aluno</span><span>Tipo</span><span>Polo</span><span>Turma</span><span>Data</span><span className="text-center">Status</span>
@@ -94,16 +100,22 @@ export default function RelatorioSolicitacoesPage() {
         ) : (
           <ul className="divide-y divide-gray-50">
             {filtered.map((s) => (
-              <li key={s.id} className="grid grid-cols-1 gap-1 px-5 py-4 text-sm sm:grid-cols-6 sm:items-center sm:gap-2">
+              <li key={s.id} className="grid grid-cols-1 gap-1 px-5 py-3 text-sm sm:grid-cols-6 sm:items-center sm:gap-2">
                 <span className="font-semibold text-gray-800">{s.nomeAluno}</span>
-                <span className="text-gray-600">{s.tipoDocumento}</span>
+                <span className="text-gray-600 text-xs">{s.tipoDocumento}</span>
                 <span className="text-gray-600">{s.polo}</span>
                 <span className="text-gray-600">{s.turmaNome}</span>
                 <span className="text-gray-500">{s.dataSolicitacao}</span>
                 <span className="sm:text-center">
-                  <span className={`inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold ${statusColor[s.status]}`}>
-                    {s.status}
-                  </span>
+                  <select
+                    value={s.status}
+                    onChange={(e) => atualizarStatus(s.id, e.target.value as StatusSolicitacao)}
+                    className={`w-full rounded-full border-0 px-2.5 py-1 text-xs font-semibold outline-none cursor-pointer ${statusColor[s.status]}`}
+                  >
+                    {STATUSES.map((st) => (
+                      <option key={st} value={st}>{st}</option>
+                    ))}
+                  </select>
                 </span>
               </li>
             ))}

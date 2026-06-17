@@ -4,27 +4,36 @@ import { useState, useMemo } from "react";
 import Link from "next/link";
 import { relatorioAlunos, POLOS } from "@/lib/mock-data/relatorios";
 
-const concluintes = relatorioAlunos.filter((a) => a.situacao === "Aprovado" && a.dataConclusao);
+const concluintes = relatorioAlunos.filter((a) => a.situacao === "APROVADO" && a.dataConclusao);
 const MESES  = [...new Set(concluintes.map((a) => a.dataConclusao!))].sort();
+const ANOS   = [...new Set(MESES.map((m) => m.split("/")[1]))].sort();
 const TURMAS = [...new Set(concluintes.map((a) => a.turmaNome))].sort();
 
 export default function RelatorioConcluentesPage() {
-  const [polo,  setPolo]  = useState("");
-  const [mes,   setMes]   = useState("");
+  const [polo, setPolo] = useState("");
+  const [mes,  setMes]  = useState("");
+  const [ano,  setAno]  = useState("");
 
   const filtered = useMemo(() =>
     concluintes.filter((a) =>
       (!polo || a.polo === polo) &&
-      (!mes  || a.dataConclusao === mes)
-    ), [polo, mes]);
+      (!mes  || a.dataConclusao === mes) &&
+      (!ano  || a.dataConclusao?.endsWith(ano))
+    ), [polo, mes, ano]);
 
   const totalConcluintes = concluintes.length;
   const totalAlunos      = relatorioAlunos.length;
   const pctConclusao     = Math.round((totalConcluintes / totalAlunos) * 100);
 
+  const porPolo = [...POLOS].map((p) => ({
+    polo: p,
+    total:       relatorioAlunos.filter((a) => a.polo === p).length,
+    concluintes: concluintes.filter((a) => a.polo === p).length,
+  }));
+
   const porTurma = TURMAS.map((t) => ({
     turma: t,
-    total: relatorioAlunos.filter((a) => a.turmaNome === t).length,
+    total:       relatorioAlunos.filter((a) => a.turmaNome === t).length,
     concluintes: concluintes.filter((a) => a.turmaNome === t).length,
   }));
 
@@ -55,7 +64,7 @@ export default function RelatorioConcluentesPage() {
         <button className="rounded-2xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-500 shadow-sm hover:bg-gray-50">⬇ Exportar</button>
       </div>
 
-      {/* Indicadores */}
+      {/* Indicadores gerais */}
       <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div className="rounded-3xl bg-gradient-to-br from-[#166534] to-[#16a34a] p-5 text-white shadow-lg">
           <p className="text-xs font-semibold text-white/60">Total de Concluintes</p>
@@ -86,10 +95,25 @@ export default function RelatorioConcluentesPage() {
         </div>
       </div>
 
+      {/* Cards por polo */}
+      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+        {porPolo.map((p) => (
+          <div key={p.polo} className="rounded-3xl bg-white p-4 text-center shadow-md ring-1 ring-gray-100">
+            <p className="text-xs font-semibold text-gray-500">{p.polo}</p>
+            <p className="mt-1 text-2xl font-extrabold text-[#0f2d52]">{p.concluintes}</p>
+            <p className="text-xs text-gray-400">de {p.total}</p>
+            <div className="mx-auto mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
+              <div className="h-full rounded-full bg-green-500" style={{ width: `${p.total > 0 ? Math.round((p.concluintes / p.total) * 100) : 0}%` }} />
+            </div>
+          </div>
+        ))}
+      </div>
+
       {/* Filtros */}
-      <div className="mb-6 grid grid-cols-2 gap-3 rounded-3xl bg-white p-5 shadow-md ring-1 ring-gray-100">
+      <div className="mb-6 grid grid-cols-3 gap-3 rounded-3xl bg-white p-5 shadow-md ring-1 ring-gray-100">
         <Select label="Polo" value={polo} onChange={setPolo} options={[...POLOS]} />
         <Select label="Mês"  value={mes}  onChange={setMes}  options={MESES}      />
+        <Select label="Ano"  value={ano}  onChange={setAno}  options={ANOS}       />
       </div>
 
       {/* Lista */}

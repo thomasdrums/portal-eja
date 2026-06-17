@@ -17,7 +17,7 @@ function formatNow(): string {
 
 export default function SolicitacoesPage() {
   const [lista, setLista] = useState<Solicitacao[]>(alunoSolicitacoes);
-  const [tipo, setTipo] = useState(tiposDocumento[0]);
+  const [tipo, setTipo] = useState<string>(tiposDocumento[0]);
   const [sucesso, setSucesso] = useState(false);
 
   function handleSolicitar() {

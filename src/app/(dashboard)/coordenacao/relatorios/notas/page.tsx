@@ -2,7 +2,7 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { relatorioAlunos, POLOS, type SituacaoAluno } from "@/lib/mock-data/relatorios";
+import { relatorioAlunos, POLOS, SITUACAO_CFG } from "@/lib/mock-data/relatorios";
 
 const TURMAS = [...new Set(relatorioAlunos.map((a) => a.turmaNome))].sort();
 const AREAS_CONFIG = [
@@ -38,9 +38,9 @@ export default function RelatorioNotasPage() {
     ? AREAS_CONFIG.filter((a) => a.key === area)
     : AREAS_CONFIG;
 
-  const aprovados   = filtered.filter((a) => a.situacao === "Aprovado").length;
-  const emAndamento = filtered.filter((a) => a.situacao === "Em andamento").length;
-  const reprovados  = filtered.filter((a) => a.situacao === "Reprovado").length;
+  const aprovados   = filtered.filter((a) => a.situacao === "APROVADO").length;
+  const emAndamento = filtered.filter((a) => a.situacao === "CURSANDO" || a.situacao === "EM_PROCESSO").length;
+  const reprovados  = filtered.filter((a) => a.situacao === "EVADIDO" || a.situacao === "DESISTENTE").length;
 
   function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
     return (
@@ -73,8 +73,8 @@ export default function RelatorioNotasPage() {
       <div className="mb-6 grid grid-cols-3 gap-3">
         {[
           { label: "Aprovados",    value: aprovados,   color: "bg-green-50 text-green-700"  },
-          { label: "Em andamento", value: emAndamento, color: "bg-blue-50 text-blue-700"    },
-          { label: "Reprovados",   value: reprovados,  color: "bg-red-50 text-red-600"      },
+          { label: "Em Processo",  value: emAndamento, color: "bg-blue-50 text-blue-700"    },
+          { label: "Evad./Desist.",value: reprovados,  color: "bg-red-50 text-red-600"      },
         ].map((c) => (
           <div key={c.label} className={`rounded-3xl ${c.color} p-4 text-center`}>
             <p className="text-2xl font-extrabold">{c.value}</p>
@@ -108,11 +108,9 @@ export default function RelatorioNotasPage() {
                 <span className="font-bold text-white">{a.nome}</span>
                 <span className="ml-3 text-xs text-white/60">{a.polo} · {a.turmaNome}</span>
               </div>
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${
-                a.situacao === "Aprovado" ? "bg-green-400/30 text-green-100" :
-                a.situacao === "Reprovado" ? "bg-red-400/30 text-red-100" :
-                "bg-white/20 text-white/80"
-              }`}>{a.situacao}</span>
+              <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white/80">
+                {SITUACAO_CFG[a.situacao].label}
+              </span>
             </div>
             <div className="grid grid-cols-2 gap-px bg-gray-100 sm:grid-cols-4">
               {visibleAreas.map((ar) => {

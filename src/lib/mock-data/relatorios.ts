@@ -1,3 +1,8 @@
+// ── Re-exporta tipos compartilhados de professor.ts ──────
+import type { SituacaoAluno } from "@/lib/mock-data/professor";
+export type { SituacaoAluno } from "@/lib/mock-data/professor";
+export { SITUACAO_CFG, isAtivo } from "@/lib/mock-data/professor";
+
 // ── Tipos ────────────────────────────────────────────────
 export const POLOS = ["Caruaru", "Recife", "Olinda", "Garanhuns"] as const;
 export type Polo = (typeof POLOS)[number];
@@ -7,8 +12,9 @@ export const TURMAS_NOMES = [
   "Turma 26.5","Turma 26.6","Turma 26.7","Turma 26.8",
 ] as const;
 
-export type SituacaoAluno = "Em andamento" | "Aprovado" | "Reprovado";
 export type StatusSolicitacao = "Recebida" | "Em análise" | "Em processamento" | "Concluída";
+
+export type Observacao = { data: string; professor: string; texto: string };
 
 export type AlunoRel = {
   id: string;
@@ -19,10 +25,13 @@ export type AlunoRel = {
   situacao: SituacaoAluno;
   dataConclusao: string | null;
   documentacao: { historicoEntregue: boolean; certificadoEmitido: boolean; certificadoRecebido: boolean };
+  certificadoDataEmissao?: string;
+  certificadoDataEntrega?: string;
+  observacoes: Observacao[];
   freq: { matematica: number; linguagens: number; cienciasNatureza: number; cienciasHumanas: number; interarea: number };
   notas: {
-    matematica:      Record<string, number | null>;
-    linguagens:      Record<string, number | null>;
+    matematica:       Record<string, number | null>;
+    linguagens:       Record<string, number | null>;
     cienciasNatureza: Record<string, number | null>;
     cienciasHumanas:  Record<string, number | null>;
   };
@@ -53,155 +62,201 @@ export const relatorioAlunos: AlunoRel[] = [
   // Polo Caruaru — Turma 26.1
   {
     id:"r-a1", nome:"João Silva",     polo:"Caruaru", turmaNome:"Turma 26.1", cidade:"Caruaru",
-    situacao:"Em andamento", dataConclusao: null,
+    situacao:"CURSANDO", dataConclusao: null,
     documentacao:{ historicoEntregue:true,  certificadoEmitido:false, certificadoRecebido:false },
+    observacoes:[
+      { data:"10/04/2026", professor:"João Pereira", texto:"Aluno demonstra bom progresso em matemática, mas precisa reforçar as competências C2 e C5." },
+      { data:"20/05/2026", professor:"Carla Mendes", texto:"Participação ativa nas aulas de linguagens. Entregou todas as atividades no prazo." },
+    ],
     freq:{ matematica:85, linguagens:90, cienciasNatureza:83, cienciasHumanas:95, interarea:90 },
     notas:{ matematica:{C1:75,C2:45,C3:80,C4:62,C5:55}, linguagens:{C1:80,C2:70,C3:90,C4:65}, cienciasNatureza:{C1:60,C2:72,C3:58,C4:65}, cienciasHumanas:{C1:70,C2:68,C3:74,C4:80} },
   },
   {
     id:"r-a2", nome:"Ana Costa",      polo:"Caruaru", turmaNome:"Turma 26.1", cidade:"Caruaru",
-    situacao:"Aprovado", dataConclusao:"04/2026",
+    situacao:"APROVADO", dataConclusao:"04/2026",
     documentacao:{ historicoEntregue:true,  certificadoEmitido:true,  certificadoRecebido:true  },
+    certificadoDataEmissao:"10/04/2026", certificadoDataEntrega:"15/04/2026",
+    observacoes:[
+      { data:"15/03/2026", professor:"João Pereira", texto:"Aluna concluiu todas as competências com excelência. Recomendada para certificação." },
+    ],
     freq:{ matematica:100, linguagens:100, cienciasNatureza:100, cienciasHumanas:100, interarea:100 },
     notas:{ matematica:{C1:90,C2:85,C3:88,C4:92,C5:87}, linguagens:{C1:95,C2:88,C3:91,C4:89}, cienciasNatureza:{C1:82,C2:78,C3:85,C4:80}, cienciasHumanas:{C1:88,C2:92,C3:86,C4:90} },
   },
   {
     id:"r-a3", nome:"Pedro Ferreira", polo:"Caruaru", turmaNome:"Turma 26.1", cidade:"Caruaru",
-    situacao:"Em andamento", dataConclusao: null,
+    situacao:"EVADIDO", dataConclusao: null,
     documentacao:{ historicoEntregue:false, certificadoEmitido:false, certificadoRecebido:false },
+    observacoes:[
+      { data:"05/03/2026", professor:"João Pereira", texto:"Aluno parou de acessar o AVA e não atende contatos. Situação marcada como Evadido." },
+    ],
     freq:{ matematica:40, linguagens:50, cienciasNatureza:39, cienciasHumanas:45, interarea:40 },
     notas:{ matematica:{C1:40,C2:35,C3:null,C4:null,C5:null}, linguagens:{C1:55,C2:48,C3:null,C4:null}, cienciasNatureza:{C1:38,C2:null,C3:null,C4:null}, cienciasHumanas:{C1:60,C2:52,C3:null,C4:null} },
   },
   // Polo Caruaru — Turma 26.2
   {
     id:"r-b1", nome:"Maria Santos",   polo:"Caruaru", turmaNome:"Turma 26.2", cidade:"Caruaru",
-    situacao:"Em andamento", dataConclusao: null,
+    situacao:"CURSANDO", dataConclusao: null,
     documentacao:{ historicoEntregue:true,  certificadoEmitido:false, certificadoRecebido:false },
+    observacoes:[
+      { data:"18/04/2026", professor:"Carla Mendes", texto:"Frequência excelente. Aluna muito dedicada e motivada." },
+    ],
     freq:{ matematica:90, linguagens:100, cienciasNatureza:94, cienciasHumanas:100, interarea:90 },
     notas:{ matematica:{C1:65,C2:70,C3:68,C4:72,C5:66}, linguagens:{C1:75,C2:80,C3:70,C4:78}, cienciasNatureza:{C1:62,C2:68,C3:70,C4:65}, cienciasHumanas:{C1:80,C2:75,C3:82,C4:78} },
   },
   {
     id:"r-b2", nome:"Carlos Oliveira",polo:"Caruaru", turmaNome:"Turma 26.2", cidade:"Campinas",
-    situacao:"Em andamento", dataConclusao: null,
+    situacao:"DESISTENTE", dataConclusao: null,
     documentacao:{ historicoEntregue:true,  certificadoEmitido:false, certificadoRecebido:false },
+    observacoes:[
+      { data:"22/04/2026", professor:"João Pereira", texto:"Aluno informou que não pode continuar por questões de trabalho. Registrado como Desistente." },
+    ],
     freq:{ matematica:70, linguagens:80, cienciasNatureza:72, cienciasHumanas:75, interarea:70 },
     notas:{ matematica:{C1:50,C2:45,C3:55,C4:48,C5:52}, linguagens:{C1:60,C2:58,C3:62,C4:55}, cienciasNatureza:{C1:48,C2:52,C3:50,C4:54}, cienciasHumanas:{C1:62,C2:60,C3:58,C4:65} },
   },
   {
     id:"r-b3", nome:"Lucia Pereira",  polo:"Caruaru", turmaNome:"Turma 26.2", cidade:"Santos",
-    situacao:"Aprovado", dataConclusao:"03/2026",
+    situacao:"APROVADO", dataConclusao:"03/2026",
     documentacao:{ historicoEntregue:true,  certificadoEmitido:true,  certificadoRecebido:false },
+    certificadoDataEmissao:"20/03/2026",
+    observacoes:[
+      { data:"28/02/2026", professor:"Carla Mendes", texto:"Aluna concluiu todas as competências antes do prazo. Certificado em processamento." },
+    ],
     freq:{ matematica:100, linguagens:100, cienciasNatureza:100, cienciasHumanas:100, interarea:100 },
     notas:{ matematica:{C1:85,C2:88,C3:90,C4:82,C5:86}, linguagens:{C1:92,C2:88,C3:95,C4:90}, cienciasNatureza:{C1:78,C2:82,C3:80,C4:85}, cienciasHumanas:{C1:90,C2:88,C3:92,C4:86} },
   },
   // Polo Recife — Turma 26.3
   {
     id:"r-c1", nome:"Roberto Lima",   polo:"Recife",  turmaNome:"Turma 26.3", cidade:"Recife",
-    situacao:"Em andamento", dataConclusao: null,
+    situacao:"RDS", dataConclusao: null,
     documentacao:{ historicoEntregue:false, certificadoEmitido:false, certificadoRecebido:false },
+    observacoes:[
+      { data:"08/04/2026", professor:"Rafael Costa", texto:"Aluno optou pelo RDS. Possui saberes prévios e não avançou para o AVA." },
+    ],
     freq:{ matematica:80, linguagens:85, cienciasNatureza:83, cienciasHumanas:90, interarea:80 },
     notas:{ matematica:{C1:70,C2:65,C3:72,C4:68,C5:70}, linguagens:{C1:75,C2:72,C3:78,C4:70}, cienciasNatureza:{C1:65,C2:68,C3:70,C4:62}, cienciasHumanas:{C1:72,C2:70,C3:75,C4:68} },
   },
   {
     id:"r-c2", nome:"Fernanda Souza", polo:"Recife",  turmaNome:"Turma 26.3", cidade:"Recife",
-    situacao:"Em andamento", dataConclusao: null,
+    situacao:"CURSANDO", dataConclusao: null,
     documentacao:{ historicoEntregue:true,  certificadoEmitido:false, certificadoRecebido:false },
+    observacoes:[
+      { data:"14/05/2026", professor:"Adriana Lima", texto:"Aluna retornou às atividades após período de ausência. Progresso consistente." },
+    ],
     freq:{ matematica:95, linguagens:100, cienciasNatureza:89, cienciasHumanas:95, interarea:100 },
     notas:{ matematica:{C1:60,C2:62,C3:58,C4:65,C5:60}, linguagens:{C1:70,C2:68,C3:72,C4:65}, cienciasNatureza:{C1:55,C2:60,C3:58,C4:62}, cienciasHumanas:{C1:68,C2:65,C3:70,C4:72} },
   },
   {
     id:"r-c3", nome:"Marcos Alves",   polo:"Recife",  turmaNome:"Turma 26.3", cidade:"Olinda",
-    situacao:"Aprovado", dataConclusao:"05/2026",
+    situacao:"APROVADO", dataConclusao:"05/2026",
     documentacao:{ historicoEntregue:true,  certificadoEmitido:true,  certificadoRecebido:true  },
+    certificadoDataEmissao:"20/05/2026", certificadoDataEntrega:"28/05/2026",
+    observacoes:[
+      { data:"10/05/2026", professor:"Rafael Costa", texto:"Aluno finalizou o percurso com destaque em todas as áreas. Certificado entregue." },
+    ],
     freq:{ matematica:100, linguagens:100, cienciasNatureza:100, cienciasHumanas:100, interarea:100 },
     notas:{ matematica:{C1:88,C2:92,C3:85,C4:90,C5:88}, linguagens:{C1:90,C2:87,C3:93,C4:88}, cienciasNatureza:{C1:82,C2:85,C3:80,C4:88}, cienciasHumanas:{C1:92,C2:89,C3:94,C4:90} },
   },
   // Polo Recife — Turma 26.4
   {
     id:"r-d1", nome:"Beatriz Costa",  polo:"Recife",  turmaNome:"Turma 26.4", cidade:"Recife",
-    situacao:"Aprovado", dataConclusao:"04/2026",
+    situacao:"APROVADO", dataConclusao:"04/2026",
     documentacao:{ historicoEntregue:true,  certificadoEmitido:true,  certificadoRecebido:true  },
+    certificadoDataEmissao:"12/04/2026", certificadoDataEntrega:"18/04/2026",
+    observacoes:[{ data:"05/04/2026", professor:"Adriana Lima", texto:"Aluna concluiu com ótimo desempenho. Certificado entregue na unidade." }],
     freq:{ matematica:100, linguagens:95, cienciasNatureza:100, cienciasHumanas:100, interarea:100 },
     notas:{ matematica:{C1:78,C2:80,C3:75,C4:82,C5:78}, linguagens:{C1:85,C2:88,C3:82,C4:86}, cienciasNatureza:{C1:72,C2:75,C3:78,C4:70}, cienciasHumanas:{C1:80,C2:85,C3:82,C4:88} },
   },
   {
     id:"r-d2", nome:"Paulo Rocha",    polo:"Recife",  turmaNome:"Turma 26.4", cidade:"Mauá",
-    situacao:"Em andamento", dataConclusao: null,
+    situacao:"CURSANDO", dataConclusao: null,
     documentacao:{ historicoEntregue:false, certificadoEmitido:false, certificadoRecebido:false },
+    observacoes:[{ data:"02/05/2026", professor:"Rafael Costa", texto:"Frequência abaixo do esperado. Contato realizado — aluno confirmou retomada." }],
     freq:{ matematica:60, linguagens:70, cienciasNatureza:56, cienciasHumanas:65, interarea:60 },
     notas:{ matematica:{C1:55,C2:58,C3:50,C4:60,C5:null}, linguagens:{C1:62,C2:60,C3:58,C4:65}, cienciasNatureza:{C1:48,C2:55,C3:null,C4:null}, cienciasHumanas:{C1:60,C2:58,C3:62,C4:null} },
   },
   // Polo Olinda — Turma 26.5
   {
     id:"r-e1", nome:"Simone Barbosa", polo:"Olinda",  turmaNome:"Turma 26.5", cidade:"Olinda",
-    situacao:"Em andamento", dataConclusao: null,
+    situacao:"CURSANDO", dataConclusao: null,
     documentacao:{ historicoEntregue:true,  certificadoEmitido:false, certificadoRecebido:false },
+    observacoes:[],
     freq:{ matematica:88, linguagens:92, cienciasNatureza:85, cienciasHumanas:90, interarea:88 },
     notas:{ matematica:{C1:72,C2:68,C3:75,C4:70,C5:68}, linguagens:{C1:82,C2:78,C3:85,C4:80}, cienciasNatureza:{C1:70,C2:65,C3:72,C4:68}, cienciasHumanas:{C1:78,C2:82,C3:75,C4:80} },
   },
   {
     id:"r-e2", nome:"André Campos",   polo:"Olinda",  turmaNome:"Turma 26.5", cidade:"Olinda",
-    situacao:"Reprovado", dataConclusao: null,
+    situacao:"DESISTENTE", dataConclusao: null,
     documentacao:{ historicoEntregue:true,  certificadoEmitido:false, certificadoRecebido:false },
+    observacoes:[{ data:"30/03/2026", professor:"Bruno Almeida", texto:"Aluno comunicou desistência por motivos pessoais." }],
     freq:{ matematica:45, linguagens:50, cienciasNatureza:42, cienciasHumanas:48, interarea:45 },
     notas:{ matematica:{C1:35,C2:40,C3:38,C4:42,C5:30}, linguagens:{C1:45,C2:42,C3:48,C4:40}, cienciasNatureza:{C1:32,C2:38,C3:35,C4:40}, cienciasHumanas:{C1:42,C2:38,C3:44,C4:40} },
   },
   {
     id:"r-e3", nome:"Juliana Ramos",  polo:"Olinda",  turmaNome:"Turma 26.5", cidade:"Paulista",
-    situacao:"Aprovado", dataConclusao:"05/2026",
+    situacao:"APROVADO", dataConclusao:"06/2026",
     documentacao:{ historicoEntregue:true,  certificadoEmitido:true,  certificadoRecebido:true  },
+    certificadoDataEmissao:"05/06/2026", certificadoDataEntrega:"10/06/2026",
+    observacoes:[{ data:"01/06/2026", professor:"Cristina Farias", texto:"Aluna concluiu o percurso com excelência. Muito comprometida." }],
     freq:{ matematica:100, linguagens:100, cienciasNatureza:100, cienciasHumanas:100, interarea:100 },
     notas:{ matematica:{C1:95,C2:90,C3:92,C4:88,C5:94}, linguagens:{C1:98,C2:92,C3:95,C4:90}, cienciasNatureza:{C1:88,C2:92,C3:90,C4:95}, cienciasHumanas:{C1:94,C2:90,C3:96,C4:92} },
   },
   // Polo Olinda — Turma 26.6
   {
     id:"r-f1", nome:"Rafael Moura",   polo:"Olinda",  turmaNome:"Turma 26.6", cidade:"Olinda",
-    situacao:"Em andamento", dataConclusao: null,
+    situacao:"CURSANDO", dataConclusao: null,
     documentacao:{ historicoEntregue:true,  certificadoEmitido:false, certificadoRecebido:false },
+    observacoes:[],
     freq:{ matematica:78, linguagens:82, cienciasNatureza:80, cienciasHumanas:85, interarea:80 },
     notas:{ matematica:{C1:68,C2:72,C3:65,C4:70,C5:68}, linguagens:{C1:75,C2:70,C3:78,C4:72}, cienciasNatureza:{C1:62,C2:68,C3:65,C4:70}, cienciasHumanas:{C1:72,C2:68,C3:75,C4:70} },
   },
   {
     id:"r-f2", nome:"Cláudia Nunes",  polo:"Olinda",  turmaNome:"Turma 26.6", cidade:"Recife",
-    situacao:"Em andamento", dataConclusao: null,
+    situacao:"RDS", dataConclusao: null,
     documentacao:{ historicoEntregue:false, certificadoEmitido:false, certificadoRecebido:false },
+    observacoes:[{ data:"12/04/2026", professor:"Bruno Almeida", texto:"Aluna optou pelo Reconhecimento de Saberes. Avaliação presencial agendada." }],
     freq:{ matematica:65, linguagens:70, cienciasNatureza:62, cienciasHumanas:68, interarea:65 },
     notas:{ matematica:{C1:58,C2:62,C3:55,C4:60,C5:null}, linguagens:{C1:65,C2:60,C3:68,C4:62}, cienciasNatureza:{C1:52,C2:58,C3:55,C4:60}, cienciasHumanas:{C1:62,C2:58,C3:65,C4:60} },
   },
   // Polo Garanhuns — Turma 26.7
   {
     id:"r-g1", nome:"Tânia Vieira",   polo:"Garanhuns", turmaNome:"Turma 26.7", cidade:"Garanhuns",
-    situacao:"Aprovado", dataConclusao:"03/2026",
+    situacao:"APROVADO", dataConclusao:"06/2026",
     documentacao:{ historicoEntregue:true,  certificadoEmitido:true,  certificadoRecebido:true  },
+    certificadoDataEmissao:"08/06/2026", certificadoDataEntrega:"12/06/2026",
+    observacoes:[{ data:"06/06/2026", professor:"Diego Matos", texto:"Aluna concluiu com excelência. Turma encerrou o ciclo com bons resultados." }],
     freq:{ matematica:100, linguagens:100, cienciasNatureza:100, cienciasHumanas:100, interarea:100 },
     notas:{ matematica:{C1:82,C2:85,C3:88,C4:80,C5:84}, linguagens:{C1:88,C2:85,C3:90,C4:86}, cienciasNatureza:{C1:78,C2:80,C3:82,C4:85}, cienciasHumanas:{C1:85,C2:88,C3:82,C4:90} },
   },
   {
     id:"r-g2", nome:"Fábio Lopes",    polo:"Garanhuns", turmaNome:"Turma 26.7", cidade:"Caruaru",
-    situacao:"Em andamento", dataConclusao: null,
+    situacao:"CURSANDO", dataConclusao: null,
     documentacao:{ historicoEntregue:true,  certificadoEmitido:false, certificadoRecebido:false },
+    observacoes:[],
     freq:{ matematica:75, linguagens:80, cienciasNatureza:78, cienciasHumanas:82, interarea:75 },
     notas:{ matematica:{C1:62,C2:65,C3:60,C4:68,C5:62}, linguagens:{C1:70,C2:68,C3:72,C4:65}, cienciasNatureza:{C1:60,C2:65,C3:62,C4:68}, cienciasHumanas:{C1:68,C2:65,C3:70,C4:72} },
   },
   {
     id:"r-g3", nome:"Sandra Melo",    polo:"Garanhuns", turmaNome:"Turma 26.7", cidade:"Garanhuns",
-    situacao:"Em andamento", dataConclusao: null,
+    situacao:"CURSANDO", dataConclusao: null,
     documentacao:{ historicoEntregue:true,  certificadoEmitido:false, certificadoRecebido:false },
+    observacoes:[{ data:"20/05/2026", professor:"Elaine Torres", texto:"Aluna com frequência irregular. Verificar se há dificuldades de acesso." }],
     freq:{ matematica:55, linguagens:60, cienciasNatureza:58, cienciasHumanas:62, interarea:55 },
     notas:{ matematica:{C1:50,C2:55,C3:48,C4:52,C5:null}, linguagens:{C1:58,C2:55,C3:60,C4:52}, cienciasNatureza:{C1:45,C2:50,C3:48,C4:55}, cienciasHumanas:{C1:55,C2:52,C3:58,C4:50} },
   },
   // Polo Garanhuns — Turma 26.8
   {
     id:"r-h1", nome:"Renato Souza",   polo:"Garanhuns", turmaNome:"Turma 26.8", cidade:"Garanhuns",
-    situacao:"Aprovado", dataConclusao:"05/2026",
+    situacao:"APROVADO", dataConclusao:"05/2026",
     documentacao:{ historicoEntregue:true,  certificadoEmitido:true,  certificadoRecebido:false },
+    observacoes:[{ data:"18/05/2026", professor:"Diego Matos", texto:"Aluno concluiu com ótimas notas. Aguardando retirada do certificado." }],
     freq:{ matematica:100, linguagens:100, cienciasNatureza:100, cienciasHumanas:100, interarea:100 },
     notas:{ matematica:{C1:80,C2:78,C3:82,C4:85,C5:80}, linguagens:{C1:85,C2:82,C3:88,C4:84}, cienciasNatureza:{C1:75,C2:78,C3:80,C4:82}, cienciasHumanas:{C1:82,C2:80,C3:85,C4:88} },
   },
   {
     id:"r-h2", nome:"Patrícia Gomes", polo:"Garanhuns", turmaNome:"Turma 26.8", cidade:"Arcoverde",
-    situacao:"Em andamento", dataConclusao: null,
+    situacao:"CURSANDO", dataConclusao: null,
     documentacao:{ historicoEntregue:false, certificadoEmitido:false, certificadoRecebido:false },
+    observacoes:[],
     freq:{ matematica:72, linguagens:78, cienciasNatureza:70, cienciasHumanas:75, interarea:72 },
     notas:{ matematica:{C1:65,C2:68,C3:62,C4:70,C5:65}, linguagens:{C1:72,C2:70,C3:75,C4:68}, cienciasNatureza:{C1:60,C2:65,C3:62,C4:68}, cienciasHumanas:{C1:70,C2:68,C3:72,C4:75} },
   },
@@ -221,30 +276,30 @@ export const relatorioProfessores: ProfessorRel[] = [
 
 // ── Solicitações ─────────────────────────────────────────
 export const relatorioSolicitacoes: SolicitacaoRel[] = [
-  { id:"s1",  nomeAluno:"Ana Costa",       tipoDocumento:"Histórico Escolar",     polo:"Caruaru",   turmaNome:"Turma 26.1", dataSolicitacao:"02/04/2026", status:"Concluída"        },
-  { id:"s2",  nomeAluno:"Pedro Ferreira",  tipoDocumento:"Declaração de Matrícula",polo:"Caruaru",  turmaNome:"Turma 26.1", dataSolicitacao:"10/04/2026", status:"Em análise"       },
-  { id:"s3",  nomeAluno:"Maria Santos",    tipoDocumento:"Certificado de Conclusão",polo:"Caruaru", turmaNome:"Turma 26.2", dataSolicitacao:"05/04/2026", status:"Em processamento" },
-  { id:"s4",  nomeAluno:"Carlos Oliveira", tipoDocumento:"Histórico Escolar",     polo:"Caruaru",   turmaNome:"Turma 26.2", dataSolicitacao:"12/04/2026", status:"Recebida"         },
-  { id:"s5",  nomeAluno:"Lucia Pereira",   tipoDocumento:"Certificado de Conclusão",polo:"Caruaru", turmaNome:"Turma 26.2", dataSolicitacao:"01/03/2026", status:"Concluída"        },
-  { id:"s6",  nomeAluno:"Roberto Lima",    tipoDocumento:"Declaração de Matrícula",polo:"Recife",   turmaNome:"Turma 26.3", dataSolicitacao:"08/04/2026", status:"Em análise"       },
-  { id:"s7",  nomeAluno:"Marcos Alves",    tipoDocumento:"Certificado de Conclusão",polo:"Recife",  turmaNome:"Turma 26.3", dataSolicitacao:"15/05/2026", status:"Concluída"        },
-  { id:"s8",  nomeAluno:"Beatriz Costa",   tipoDocumento:"Histórico Escolar",     polo:"Recife",    turmaNome:"Turma 26.4", dataSolicitacao:"20/04/2026", status:"Concluída"        },
-  { id:"s9",  nomeAluno:"Paulo Rocha",     tipoDocumento:"Declaração de Matrícula",polo:"Recife",   turmaNome:"Turma 26.4", dataSolicitacao:"22/04/2026", status:"Recebida"         },
-  { id:"s10", nomeAluno:"Simone Barbosa",  tipoDocumento:"Histórico Escolar",     polo:"Olinda",    turmaNome:"Turma 26.5", dataSolicitacao:"14/04/2026", status:"Em processamento" },
-  { id:"s11", nomeAluno:"Juliana Ramos",   tipoDocumento:"Certificado de Conclusão",polo:"Olinda",  turmaNome:"Turma 26.5", dataSolicitacao:"18/05/2026", status:"Concluída"        },
-  { id:"s12", nomeAluno:"Rafael Moura",    tipoDocumento:"Declaração de Matrícula",polo:"Olinda",   turmaNome:"Turma 26.6", dataSolicitacao:"25/04/2026", status:"Em análise"       },
-  { id:"s13", nomeAluno:"Tânia Vieira",    tipoDocumento:"Certificado de Conclusão",polo:"Garanhuns",turmaNome:"Turma 26.7",dataSolicitacao:"10/03/2026", status:"Concluída"        },
-  { id:"s14", nomeAluno:"Fábio Lopes",     tipoDocumento:"Histórico Escolar",     polo:"Garanhuns", turmaNome:"Turma 26.7", dataSolicitacao:"28/04/2026", status:"Recebida"         },
-  { id:"s15", nomeAluno:"Renato Souza",    tipoDocumento:"Certificado de Conclusão",polo:"Garanhuns",turmaNome:"Turma 26.8",dataSolicitacao:"20/05/2026", status:"Em processamento" },
+  { id:"s1",  nomeAluno:"Ana Costa",       tipoDocumento:"Histórico Escolar",      polo:"Caruaru",   turmaNome:"Turma 26.1", dataSolicitacao:"02/04/2026", status:"Concluída"        },
+  { id:"s2",  nomeAluno:"Pedro Ferreira",  tipoDocumento:"Declaração de Matrícula",polo:"Caruaru",   turmaNome:"Turma 26.1", dataSolicitacao:"10/04/2026", status:"Em análise"       },
+  { id:"s3",  nomeAluno:"Maria Santos",    tipoDocumento:"Certificado de Conclusão",polo:"Caruaru",  turmaNome:"Turma 26.2", dataSolicitacao:"05/04/2026", status:"Em processamento" },
+  { id:"s4",  nomeAluno:"Carlos Oliveira", tipoDocumento:"Histórico Escolar",      polo:"Caruaru",   turmaNome:"Turma 26.2", dataSolicitacao:"12/04/2026", status:"Recebida"         },
+  { id:"s5",  nomeAluno:"Lucia Pereira",   tipoDocumento:"Certificado de Conclusão",polo:"Caruaru",  turmaNome:"Turma 26.2", dataSolicitacao:"01/03/2026", status:"Concluída"        },
+  { id:"s6",  nomeAluno:"Roberto Lima",    tipoDocumento:"Declaração de Matrícula",polo:"Recife",    turmaNome:"Turma 26.3", dataSolicitacao:"08/04/2026", status:"Em análise"       },
+  { id:"s7",  nomeAluno:"Marcos Alves",    tipoDocumento:"Certificado de Conclusão",polo:"Recife",   turmaNome:"Turma 26.3", dataSolicitacao:"15/05/2026", status:"Concluída"        },
+  { id:"s8",  nomeAluno:"Beatriz Costa",   tipoDocumento:"Histórico Escolar",      polo:"Recife",    turmaNome:"Turma 26.4", dataSolicitacao:"20/04/2026", status:"Concluída"        },
+  { id:"s9",  nomeAluno:"Paulo Rocha",     tipoDocumento:"Declaração de Matrícula",polo:"Recife",    turmaNome:"Turma 26.4", dataSolicitacao:"22/04/2026", status:"Recebida"         },
+  { id:"s10", nomeAluno:"Simone Barbosa",  tipoDocumento:"Histórico Escolar",      polo:"Olinda",    turmaNome:"Turma 26.5", dataSolicitacao:"14/04/2026", status:"Em processamento" },
+  { id:"s11", nomeAluno:"Juliana Ramos",   tipoDocumento:"Certificado de Conclusão",polo:"Olinda",   turmaNome:"Turma 26.5", dataSolicitacao:"18/05/2026", status:"Concluída"        },
+  { id:"s12", nomeAluno:"Rafael Moura",    tipoDocumento:"Declaração de Matrícula",polo:"Olinda",    turmaNome:"Turma 26.6", dataSolicitacao:"25/04/2026", status:"Em análise"       },
+  { id:"s13", nomeAluno:"Tânia Vieira",    tipoDocumento:"Certificado de Conclusão",polo:"Garanhuns",turmaNome:"Turma 26.7", dataSolicitacao:"10/03/2026", status:"Concluída"        },
+  { id:"s14", nomeAluno:"Fábio Lopes",     tipoDocumento:"Histórico Escolar",      polo:"Garanhuns", turmaNome:"Turma 26.7", dataSolicitacao:"28/04/2026", status:"Recebida"         },
+  { id:"s15", nomeAluno:"Renato Souza",    tipoDocumento:"Certificado de Conclusão",polo:"Garanhuns",turmaNome:"Turma 26.8", dataSolicitacao:"20/05/2026", status:"Em processamento" },
 ];
 
 // ── Indicadores gerais ───────────────────────────────────
 export const indicadoresGerais = {
-  totalAlunos:              relatorioAlunos.length,
-  totalProfessores:         relatorioProfessores.length,
-  totalTurmas:              8,
-  totalPolos:               POLOS.length,
-  totalSolicitacoes:        relatorioSolicitacoes.length,
+  totalAlunos:               relatorioAlunos.length,
+  totalProfessores:          relatorioProfessores.length,
+  totalTurmas:               8,
+  totalPolos:                POLOS.length,
+  totalSolicitacoes:         relatorioSolicitacoes.length,
   totalCertificadosEmitidos: relatorioAlunos.filter((a) => a.documentacao.certificadoEmitido).length,
 };
 
@@ -287,11 +342,11 @@ export function freqMediaPorArea() {
   });
 }
 
-// Concluintes agrupados por mês
+// Concluintes agrupados por mês (somente APROVADO)
 export function concluentesPorMes() {
   const meses: Record<string, number> = {};
   relatorioAlunos
-    .filter((a) => a.dataConclusao !== null)
+    .filter((a) => a.situacao === "APROVADO" && a.dataConclusao !== null)
     .forEach((a) => {
       const k = a.dataConclusao!;
       meses[k] = (meses[k] ?? 0) + 1;
@@ -314,7 +369,7 @@ export function dadosPorPolo() {
     const alunos      = relatorioAlunos.filter((a) => a.polo === polo);
     const professores = relatorioProfessores.filter((p) => p.polo === polo);
     const turmas      = [...new Set(alunos.map((a) => a.turmaNome))];
-    const concluintes = alunos.filter((a) => a.situacao === "Aprovado");
+    const concluintes = alunos.filter((a) => a.situacao === "APROVADO");
     const certEmitidos = alunos.filter((a) => a.documentacao.certificadoEmitido);
     const freqGeral   = alunos.length > 0
       ? Math.round(alunos.reduce((s, a) => s + freqMedia(a), 0) / alunos.length)

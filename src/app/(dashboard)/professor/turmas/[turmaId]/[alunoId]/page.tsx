@@ -7,6 +7,7 @@ import {
   professorTurmas,
   AREAS_CONFIG,
   FREQ_AREAS_CONFIG,
+  SITUACAO_CFG,
   notasEditaveis,
   freqEditaveis,
   type Aluno,
@@ -24,12 +25,28 @@ function pct(presencas: number, total: number) {
   return Math.round((presencas / total) * 100);
 }
 
+type Observacao = { id: string; data: string; texto: string };
+
+// Observações de exemplo — TODO: persistir no banco (Fase 2)
+const OBS_INICIAIS: Observacao[] = [
+  { id: "obs-1", data: "10/03/2026", texto: "Aluno necessita acompanhamento pedagógico." },
+  { id: "obs-2", data: "15/04/2026", texto: "Aluno retornou após período de evasão." },
+];
+
 // ── sub-components ───────────────────────────────────────
-function TabButton({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
+function TabButton({
+  label,
+  active,
+  onClick,
+}: {
+  label: string;
+  active: boolean;
+  onClick: () => void;
+}) {
   return (
     <button
       onClick={onClick}
-      className={`flex-1 rounded-2xl py-2.5 text-sm font-bold transition ${
+      className={`flex-1 rounded-2xl py-2.5 text-xs font-bold transition sm:text-sm ${
         active
           ? "bg-gradient-to-r from-[#0f2d52] to-[#1565c0] text-white shadow-sm"
           : "text-gray-500 hover:text-[#0f2d52]"
@@ -40,7 +57,13 @@ function TabButton({ label, active, onClick }: { label: string; active: boolean;
   );
 }
 
-function SaveBar({ onSave, onCancel }: { onSave: () => void; onCancel: () => void }) {
+function SaveBar({
+  onSave,
+  onCancel,
+}: {
+  onSave: () => void;
+  onCancel: () => void;
+}) {
   return (
     <div className="flex gap-3 pt-4">
       <button
@@ -78,7 +101,7 @@ export default function AlunoPage({
 }) {
   const { turmaId, alunoId } = use(params);
   const { data: session } = useSession();
-  const userRole      = session?.user?.role      ?? "PROFESSOR";
+  const userRole       = session?.user?.role       ?? "PROFESSOR";
   const userDisciplina = session?.user?.disciplina ?? null;
 
   const editableNotasIds = notasEditaveis(userDisciplina, userRole);
@@ -87,14 +110,17 @@ export default function AlunoPage({
   const canEditNotas = (id: AreaId)     => editableNotasIds.includes(id);
   const canEditFreq  = (id: FreqAreaId) => editableFreqIds.includes(id);
 
-  const turma = professorTurmas.find((t) => t.id === turmaId);
+  const turma         = professorTurmas.find((t) => t.id === turmaId);
   const alunoOriginal = turma?.alunos.find((a) => a.id === alunoId);
 
-  const [aluno, setAluno]   = useState<Aluno | undefined>(alunoOriginal);
-  const [tab, setTab]       = useState<"dados" | "notas" | "frequencia">("dados");
+  const [aluno, setAluno]     = useState<Aluno | undefined>(alunoOriginal);
+  const [tab, setTab]         = useState<"dados" | "notas" | "frequencia" | "observacoes">("dados");
   const [editing, setEditing] = useState(false);
-  const [draft, setDraft]   = useState<Aluno | undefined>(alunoOriginal);
+  const [draft, setDraft]     = useState<Aluno | undefined>(alunoOriginal);
   const [flashMsg, setFlashMsg] = useState("");
+
+  // Observações — TODO: persistir no banco (Fase 2)
+  const [obs, setObs] = useState<Observacao[]>(OBS_INICIAIS);
 
   if (!aluno || !draft) {
     return (
@@ -109,12 +135,16 @@ export default function AlunoPage({
     setTimeout(() => setFlashMsg(""), 3000);
   }
 
-  function startEdit() { setDraft({ ...aluno }); setEditing(true); }
-  function cancelEdit() { setDraft({ ...aluno }); setEditing(false); }
-  function saveEdit() { setAluno({ ...draft }); setEditing(false); flash("Salvo com sucesso!"); }
+  function startEdit()  { setDraft({ ...aluno! }); setEditing(true); }
+  function cancelEdit() { setDraft({ ...aluno! }); setEditing(false); }
+  function saveEdit()   { setAluno({ ...draft! }); setEditing(false); flash("Salvo com sucesso!"); }
 
   // ── Aba: Dados ──────────────────────────────────────────
   function DadosTab() {
+    /* aluno e draft são garantidamente não-nulos pelo early-return acima */
+    const al = aluno!;
+    const dr = draft!;
+
     const personalFields: { key: keyof Aluno; label: string }[] = [
       { key: "nome",          label: "Nome" },
       { key: "cidade",        label: "Cidade" },
@@ -146,13 +176,13 @@ export default function AlunoPage({
                 <p className="mb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">{label}</p>
                 {editing ? (
                   <input
-                    value={(draft[key] as string) ?? ""}
+                    value={(dr[key] as string) ?? ""}
                     onChange={(e) => setDraft((d) => d ? { ...d, [key]: e.target.value } : d)}
                     className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 outline-none focus:border-[#1565c0] focus:ring-2 focus:ring-[#1565c0]/20"
                   />
                 ) : (
                   <p className="rounded-2xl bg-gray-50 px-4 py-2.5 text-sm font-medium text-gray-800">
-                    {(aluno[key] as string) || "—"}
+                    {(al[key] as string) || "—"}
                   </p>
                 )}
               </div>
@@ -164,18 +194,20 @@ export default function AlunoPage({
           <h3 className="mb-3 font-bold text-gray-700">Documentação</h3>
           <div className="space-y-3">
             {([
-              { key: "historicoEntregue",   label: "Histórico Entregue" },
-              { key: "certificadoEmitido",  label: "Certificado Emitido" },
+              { key: "historicoEntregue",   label: "Histórico Entregue"   },
+              { key: "certificadoEmitido",  label: "Certificado Emitido"  },
               { key: "certificadoRecebido", label: "Certificado Recebido" },
-            ] as { key: keyof typeof draft.documentacao; label: string }[]).map(({ key, label }) => (
+            ] as { key: keyof typeof dr.documentacao; label: string }[]).map(({ key, label }) => (
               <label key={key} className="flex cursor-pointer items-center justify-between rounded-2xl bg-gray-50 px-4 py-3">
                 <span className="text-sm font-medium text-gray-700">{label}</span>
                 <input
                   type="checkbox"
-                  checked={editing ? (draft.documentacao[key] ?? false) : aluno.documentacao[key]}
+                  checked={editing ? (dr.documentacao[key] ?? false) : al.documentacao[key]}
                   disabled={!editing}
                   onChange={(e) =>
-                    setDraft((d) => d ? { ...d, documentacao: { ...d.documentacao, [key]: e.target.checked } } : d)
+                    setDraft((d) =>
+                      d ? { ...d, documentacao: { ...d.documentacao, [key]: e.target.checked } } : d
+                    )
                   }
                   className="h-5 w-5 rounded accent-[#1565c0]"
                 />
@@ -191,8 +223,9 @@ export default function AlunoPage({
 
   // ── Aba: Notas ──────────────────────────────────────────
   function NotasTab() {
+    const al = aluno!;
     const [editingNotas, setEditingNotas] = useState(false);
-    const [notasDraft, setNotasDraft]     = useState({ ...aluno.notas });
+    const [notasDraft, setNotasDraft]     = useState({ ...al.notas });
 
     const hasEditableArea = editableNotasIds.length > 0;
 
@@ -205,7 +238,6 @@ export default function AlunoPage({
 
     return (
       <div className="space-y-4">
-        {/* Legenda + botão de edição global */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-500">Verde ≥ 60 · Vermelho &lt; 60</p>
           {hasEditableArea && !editingNotas && (
@@ -221,33 +253,28 @@ export default function AlunoPage({
           )}
         </div>
 
-        {/* Todas as áreas */}
         {AREAS_CONFIG.map((area) => {
-          const areaKey   = area.id as AreaId;
-          const editable  = canEditNotas(areaKey);
+          const areaKey  = area.id as AreaId;
+          const editable = canEditNotas(areaKey);
           const isEditing = editingNotas && editable;
 
           return (
             <div
               key={area.id}
               className={`overflow-hidden rounded-3xl shadow-md ${
-                editable
-                  ? "bg-white ring-1 ring-gray-100"
-                  : "bg-gray-50 ring-1 ring-gray-200"
+                editable ? "bg-white ring-1 ring-gray-100" : "bg-gray-50 ring-1 ring-gray-200"
               }`}
             >
-              {/* Header */}
               <div className="flex items-center justify-between bg-gradient-to-r from-[#0f2d52] to-[#1565c0] px-5 py-3">
                 <h3 className="font-bold text-white text-sm">{area.nome}</h3>
                 {!editable && <ReadOnlyBadge />}
               </div>
 
-              {/* Competências */}
               <div className="divide-y divide-gray-100 px-5">
                 {area.competencias.map((comp) => {
                   const nota = isEditing
                     ? (notasDraft[areaKey][comp] ?? null)
-                    : (aluno.notas[areaKey][comp] ?? null);
+                    : (al.notas[areaKey][comp] ?? null);
                   const ok      = nota !== null && nota >= 60;
                   const pending = nota === null;
 
@@ -290,7 +317,7 @@ export default function AlunoPage({
         {editingNotas && (
           <SaveBar
             onSave={saveNotas}
-            onCancel={() => { setNotasDraft({ ...aluno.notas }); setEditingNotas(false); }}
+            onCancel={() => { setNotasDraft({ ...al.notas }); setEditingNotas(false); }}
           />
         )}
       </div>
@@ -299,8 +326,9 @@ export default function AlunoPage({
 
   // ── Aba: Frequência ─────────────────────────────────────
   function FrequenciaTab() {
+    const al = aluno!;
     const [editingFreq, setEditingFreq] = useState(false);
-    const [freqDraft, setFreqDraft]     = useState({ ...aluno.frequencia });
+    const [freqDraft, setFreqDraft]     = useState({ ...al.frequencia });
 
     const hasEditableArea = editableFreqIds.length > 0;
 
@@ -311,8 +339,7 @@ export default function AlunoPage({
       flash("Frequência salva!");
     }
 
-    // Totais — recalculados a partir dos dados exibidos (draft quando editando)
-    const freqSource = editingFreq ? freqDraft : aluno.frequencia;
+    const freqSource    = editingFreq ? freqDraft : al.frequencia;
     const totalPresencas = Object.values(freqSource).reduce((s, v) => s + v.presencas, 0);
     const totalAulas     = Object.values(freqSource).reduce((s, v) => s + v.totalAulas, 0);
     const totalFaltas    = totalAulas - totalPresencas;
@@ -349,7 +376,6 @@ export default function AlunoPage({
           </div>
         </div>
 
-        {/* Botão de edição global */}
         <div className="flex items-center justify-between">
           <p className="text-sm text-gray-500">Necessário 100% para aprovação por área</p>
           {hasEditableArea && !editingFreq && (
@@ -365,17 +391,16 @@ export default function AlunoPage({
           )}
         </div>
 
-        {/* Todas as áreas */}
         {FREQ_AREAS_CONFIG.map((area) => {
-          const areaKey  = area.id as FreqAreaId;
-          const editable = canEditFreq(areaKey);
+          const areaKey   = area.id as FreqAreaId;
+          const editable  = canEditFreq(areaKey);
           const isEditing = editingFreq && editable;
 
-          const display = (editingFreq && editable) ? freqDraft[areaKey] : aluno.frequencia[areaKey];
-          const p      = pct(display.presencas, display.totalAulas);
-          const faltas = display.totalAulas - display.presencas;
+          const display = (editingFreq && editable) ? freqDraft[areaKey] : al.frequencia[areaKey];
+          const p       = pct(display.presencas, display.totalAulas);
+          const faltas  = display.totalAulas - display.presencas;
 
-          const isInterarea  = areaKey === "interarea";
+          const isInterarea    = areaKey === "interarea";
           const headerGradient = isInterarea
             ? "from-[#b45309] to-[#d97706]"
             : "from-[#0f2d52] to-[#1565c0]";
@@ -387,7 +412,6 @@ export default function AlunoPage({
                 editable ? "bg-white ring-1 ring-gray-100" : "bg-gray-50 ring-1 ring-gray-200"
               }`}
             >
-              {/* Header */}
               <div className={`flex items-center justify-between bg-gradient-to-r ${headerGradient} px-5 py-3`}>
                 <h3 className="font-bold text-white text-sm">{area.nome}</h3>
                 <div className="flex items-center gap-2">
@@ -398,7 +422,6 @@ export default function AlunoPage({
                 </div>
               </div>
 
-              {/* Corpo */}
               <div className="p-5">
                 {isEditing ? (
                   <div className="grid grid-cols-2 gap-3">
@@ -464,12 +487,118 @@ export default function AlunoPage({
         {editingFreq && (
           <SaveBar
             onSave={saveFreq}
-            onCancel={() => { setFreqDraft({ ...aluno.frequencia }); setEditingFreq(false); }}
+            onCancel={() => { setFreqDraft({ ...al.frequencia }); setEditingFreq(false); }}
           />
         )}
       </div>
     );
   }
+
+  // ── Aba: Observações Pedagógicas ────────────────────────
+  function ObservacoesTab() {
+    const [novaObs, setNovaObs]         = useState("");
+    const [editingObsId, setEditingObsId] = useState<string | null>(null);
+    const [editObsText, setEditObsText]   = useState("");
+
+    function addObs() {
+      if (!novaObs.trim()) return;
+      const d    = new Date();
+      const data = `${String(d.getDate()).padStart(2, "0")}/${String(d.getMonth() + 1).padStart(2, "0")}/${d.getFullYear()}`;
+      // TODO: persistir no banco (Fase 2)
+      setObs((prev) => [...prev, { id: `obs-${Date.now()}`, data, texto: novaObs.trim() }]);
+      setNovaObs("");
+      flash("Observação salva!");
+    }
+
+    function startEditObs(o: Observacao) {
+      setEditingObsId(o.id);
+      setEditObsText(o.texto);
+    }
+
+    function saveEditObs() {
+      // TODO: persistir no banco (Fase 2)
+      setObs((prev) =>
+        prev.map((o) => (o.id === editingObsId ? { ...o, texto: editObsText } : o))
+      );
+      setEditingObsId(null);
+      flash("Observação atualizada!");
+    }
+
+    return (
+      <div className="space-y-4">
+        {/* Histórico */}
+        <div className="space-y-3">
+          {obs.length === 0 && (
+            <p className="rounded-3xl bg-white px-5 py-6 text-center text-sm text-gray-400 shadow-sm ring-1 ring-gray-100">
+              Nenhuma observação registrada.
+            </p>
+          )}
+          {obs.map((o) => (
+            <div key={o.id} className="rounded-3xl bg-white p-5 shadow-sm ring-1 ring-gray-100">
+              {editingObsId === o.id ? (
+                <div>
+                  <textarea
+                    value={editObsText}
+                    onChange={(e) => setEditObsText(e.target.value)}
+                    rows={3}
+                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#1565c0] focus:bg-white focus:ring-2 focus:ring-[#1565c0]/20"
+                  />
+                  <div className="mt-2 flex gap-2">
+                    <button
+                      onClick={() => setEditingObsId(null)}
+                      className="rounded-xl border border-gray-200 px-3 py-1.5 text-xs font-semibold text-gray-500 hover:bg-gray-50"
+                    >
+                      Cancelar
+                    </button>
+                    <button
+                      onClick={saveEditObs}
+                      className="rounded-xl bg-gradient-to-r from-[#0f2d52] to-[#1565c0] px-3 py-1.5 text-xs font-bold text-white hover:opacity-90"
+                    >
+                      Salvar
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-semibold text-gray-400">{o.data}</span>
+                    <button
+                      onClick={() => startEditObs(o)}
+                      className="text-xs font-semibold text-[#1565c0] hover:underline"
+                    >
+                      Editar
+                    </button>
+                  </div>
+                  <p className="text-sm text-gray-700">{o.texto}</p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Nova observação */}
+        <div className="rounded-3xl bg-white p-5 shadow-md ring-1 ring-gray-100">
+          <h3 className="mb-3 font-bold text-gray-700">Nova Observação</h3>
+          <textarea
+            value={novaObs}
+            onChange={(e) => setNovaObs(e.target.value)}
+            placeholder="Digite a observação pedagógica..."
+            rows={3}
+            className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#1565c0] focus:bg-white focus:ring-2 focus:ring-[#1565c0]/20"
+          />
+          <button
+            onClick={addObs}
+            disabled={!novaObs.trim()}
+            className="mt-3 w-full rounded-2xl bg-gradient-to-r from-[#0f2d52] to-[#1565c0] py-3 text-sm font-bold text-white shadow-md transition hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+          >
+            Salvar observação
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  const situacaoCfg = SITUACAO_CFG[aluno.situacao];
 
   return (
     <div className="mx-auto max-w-2xl px-4 py-6">
@@ -496,22 +625,28 @@ export default function AlunoPage({
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/25 text-xl font-bold ring-2 ring-white/30">
           {getInitials(aluno.nome)}
         </div>
-        <div>
+        <div className="flex-1 min-w-0">
           <p className="text-lg font-bold leading-tight">{aluno.nome}</p>
-          <p className="text-sm text-white/70">{aluno.cidade} · {aluno.situacao}</p>
+          <p className="text-xs text-white/60">RA {aluno.ra}</p>
+          <p className="text-sm text-white/70">{aluno.cidade}</p>
         </div>
+        <span className={`shrink-0 rounded-full px-3 py-1 text-xs font-bold ${situacaoCfg.classes}`}>
+          {situacaoCfg.label}
+        </span>
       </div>
 
       {/* Tabs */}
       <div className="mb-5 flex gap-1 rounded-2xl bg-gray-100 p-1">
-        <TabButton label="Dados"      active={tab === "dados"}      onClick={() => { setEditing(false); setTab("dados");      }} />
-        <TabButton label="Notas"      active={tab === "notas"}      onClick={() => { setEditing(false); setTab("notas");      }} />
-        <TabButton label="Frequência" active={tab === "frequencia"} onClick={() => { setEditing(false); setTab("frequencia"); }} />
+        <TabButton label="Dados"       active={tab === "dados"}       onClick={() => { setEditing(false); setTab("dados");        }} />
+        <TabButton label="Notas"       active={tab === "notas"}       onClick={() => { setEditing(false); setTab("notas");        }} />
+        <TabButton label="Frequência"  active={tab === "frequencia"}  onClick={() => { setEditing(false); setTab("frequencia");   }} />
+        <TabButton label="Observações" active={tab === "observacoes"} onClick={() => { setEditing(false); setTab("observacoes");  }} />
       </div>
 
-      {tab === "dados"      && <DadosTab />}
-      {tab === "notas"      && <NotasTab />}
-      {tab === "frequencia" && <FrequenciaTab />}
+      {tab === "dados"       && <DadosTab />}
+      {tab === "notas"       && <NotasTab />}
+      {tab === "frequencia"  && <FrequenciaTab />}
+      {tab === "observacoes" && <ObservacoesTab />}
     </div>
   );
 }
