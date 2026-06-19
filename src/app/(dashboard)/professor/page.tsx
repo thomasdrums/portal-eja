@@ -2,77 +2,88 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { CardStat } from "@/components/dashboard/CardStat";
 import { professorTurmas, isAtivo } from "@/lib/mock-data/professor";
+import { Users, ExternalLink } from "lucide-react";
 
 export default async function ProfessorDashboardPage() {
   const session = await auth();
   const nome = session?.user?.name ?? "Professor";
 
   const todosAlunos = professorTurmas.flatMap((t) => t.alunos);
-  const total     = todosAlunos.length;
-  const ativos    = todosAlunos.filter((a) => isAtivo(a.situacao)).length;
-  const aprovados = todosAlunos.filter((a) => a.situacao === "APROVADO").length;
-
-  const sections = [
-    {
-      href: "/professor/relatorios",
-      label: "Relatórios",
-      sub: "Resumos e fichas individuais por turma",
-      icon: "📊",
-    },
-    {
-      href: "/professor/turmas",
-      label: "Turmas",
-      sub: "Alunos, notas e frequência",
-      icon: "👥",
-    },
-    {
-      href: "/professor/aulas",
-      label: "Aulas e Frequência",
-      sub: "Cadastrar e gerenciar aulas gravadas",
-      icon: "🎬",
-    },
-  ];
+  const totalAlunos = todosAlunos.length;
+  const ativos      = todosAlunos.filter((a) => isAtivo(a.situacao)).length;
 
   return (
-    <div className="space-y-6">
+    <div className="mx-auto max-w-5xl space-y-8">
+      {/* Cabeçalho */}
       <div>
-        <h1 className="text-xl font-semibold text-gray-900">Olá, {nome.split(" ")[0]}!</h1>
-        <p className="text-sm text-gray-500">Painel do professor · Portal EJA</p>
+        <h1 className="text-xl font-semibold text-gray-900">
+          Bem-vindo, {nome.split(" ")[0]}
+        </h1>
+        <p className="mt-0.5 text-sm text-[#4B5563]">Painel do professor — Portal EJA SESI</p>
       </div>
 
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-        <CardStat label="Turmas"        value={professorTurmas.length} />
-        <CardStat label="Total de Alunos" value={total} />
-        <CardStat label="Ativos"        value={ativos} />
-        <CardStat label="Aprovados"     value={aprovados} />
-      </div>
+      {/* Indicadores */}
+      <section>
+        <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-[#4B5563]">
+          Visão Geral
+        </h2>
+        <div className="grid gap-4 sm:grid-cols-3">
+          <CardStat label="Total de Turmas"  value={professorTurmas.length} />
+          <CardStat label="Total de Alunos"  value={totalAlunos} />
+          <CardStat label="Alunos Ativos"    value={ativos} />
+        </div>
+      </section>
 
-      <div className="space-y-3">
-        {sections.map((s) => (
+      {/* Turmas */}
+      <section>
+        <div className="mb-3 flex items-center justify-between">
+          <h2 className="text-sm font-semibold uppercase tracking-wide text-[#4B5563]">Turmas</h2>
           <Link
-            key={s.href}
-            href={s.href}
-            className="flex items-center gap-4 rounded-3xl bg-gradient-to-r from-[#0f2d52] to-[#1565c0] p-5 text-white shadow-lg transition hover:opacity-90"
+            href="/professor/turmas"
+            className="flex items-center gap-1 text-xs font-medium text-[#009640] hover:underline"
           >
-            <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-white/20 text-2xl">
-              {s.icon}
-            </span>
-            <div>
-              <p className="font-bold text-lg">{s.label}</p>
-              <p className="text-sm text-white/70">{s.sub}</p>
-            </div>
-            <svg
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth={2.5}
-              className="ml-auto h-5 w-5 shrink-0 text-white/60"
-            >
-              <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-            </svg>
+            Ver todas
+            <ExternalLink size={12} />
           </Link>
-        ))}
-      </div>
+        </div>
+
+        <div className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-[#009640]">
+                <th className="px-5 py-3 text-left text-xs font-semibold text-white">Turma</th>
+                <th className="hidden px-5 py-3 text-center text-xs font-semibold text-white sm:table-cell">Etapa</th>
+                <th className="px-5 py-3 text-center text-xs font-semibold text-white">Total de Alunos</th>
+                <th className="px-5 py-3 text-center text-xs font-semibold text-white">Ação</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E5E7EB]">
+              {professorTurmas.map((turma) => (
+                <tr key={turma.id} className="hover:bg-[#F8FAFC]">
+                  <td className="px-5 py-3">
+                    <div className="flex items-center gap-2">
+                      <Users size={15} className="shrink-0 text-[#009640]" />
+                      <span className="font-medium text-gray-800">{turma.nome}</span>
+                    </div>
+                  </td>
+                  <td className="hidden px-5 py-3 text-center text-[#4B5563] sm:table-cell">—</td>
+                  <td className="px-5 py-3 text-center font-semibold text-gray-800">
+                    {turma.alunos.length}
+                  </td>
+                  <td className="px-5 py-3 text-center">
+                    <Link
+                      href={`/professor/turmas/${turma.id}`}
+                      className="inline-flex items-center gap-1 rounded border border-[#009640] px-3 py-1.5 text-xs font-semibold text-[#009640] transition hover:bg-[#EAF6EE]"
+                    >
+                      Acessar
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </section>
     </div>
   );
 }

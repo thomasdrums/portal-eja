@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
-import { Sidebar } from "@/components/dashboard/Sidebar";
 import { Topbar } from "@/components/dashboard/Topbar";
-import { BottomNav } from "@/components/dashboard/BottomNav";
+import { HorizontalNav } from "@/components/dashboard/HorizontalNav";
+import { Sidebar } from "@/components/dashboard/Sidebar";
 import { DrawerMenu } from "@/components/dashboard/DrawerMenu";
 
 export default async function DashboardLayout({
@@ -17,25 +17,34 @@ export default async function DashboardLayout({
 
   if (role === "ALUNO") {
     return (
-      <div className="min-h-screen bg-[#f5f8fc]">
-        <header className="sticky top-0 z-30 flex h-14 items-center bg-[#0f2d52] px-3 shadow-md">
+      <div className="min-h-screen bg-[#F5F5F5]">
+        <header className="sticky top-0 z-30 flex h-14 items-center bg-[#009640] px-3 shadow-sm">
           <DrawerMenu userName={name ?? "Aluno"} />
-          <span className="absolute left-1/2 -translate-x-1/2 text-base font-bold text-white">
-            Portal EJA
+          <span className="absolute left-1/2 -translate-x-1/2 text-sm font-bold text-white">
+            Portal EJA SESI
           </span>
         </header>
-        <main className="pb-24">{children}</main>
-        <BottomNav role="ALUNO" />
+        <main className="px-4 py-6">{children}</main>
+      </div>
+    );
+  }
+
+  if (role === "PROFESSOR") {
+    return (
+      <div className="min-h-screen bg-[#F5F5F5]">
+        <Topbar name={name ?? ""} role="PROFESSOR" />
+        <HorizontalNav role="PROFESSOR" />
+        <main className="px-4 py-6 md:px-6">{children}</main>
       </div>
     );
   }
 
   return (
-    <div className="flex min-h-screen bg-[#f5f8fc]">
-      <Sidebar role={role} />
-      <div className="flex flex-1 flex-col min-w-0">
-        <Topbar name={name ?? ""} role={role} />
-        <main className="flex-1 p-4 md:p-6">{children}</main>
+    <div className="min-h-screen bg-[#F5F5F5]">
+      <Topbar name={name ?? ""} role="COORDENACAO" />
+      <div className="flex" style={{ minHeight: "calc(100vh - 4rem)" }}>
+        <Sidebar />
+        <main className="min-w-0 flex-1 px-4 py-6 md:px-6">{children}</main>
       </div>
     </div>
   );

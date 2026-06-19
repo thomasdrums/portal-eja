@@ -46,10 +46,10 @@ function TabButton({
   return (
     <button
       onClick={onClick}
-      className={`flex-1 rounded-2xl py-2.5 text-xs font-bold transition sm:text-sm ${
+      className={`flex-1 rounded py-2.5 text-xs font-semibold transition sm:text-sm ${
         active
-          ? "bg-gradient-to-r from-[#0f2d52] to-[#1565c0] text-white shadow-sm"
-          : "text-gray-500 hover:text-[#0f2d52]"
+          ? "bg-[#009640] text-white shadow-sm"
+          : "text-[#4B5563] hover:text-[#009640]"
       }`}
     >
       {label}
@@ -68,13 +68,13 @@ function SaveBar({
     <div className="flex gap-3 pt-4">
       <button
         onClick={onCancel}
-        className="flex-1 rounded-2xl border-2 border-gray-200 py-3 text-sm font-bold text-gray-500 hover:bg-gray-50"
+        className="flex-1 rounded border border-[#D9D9D9] py-2.5 text-sm font-semibold text-[#4B5563] hover:bg-[#F5F5F5]"
       >
         Cancelar
       </button>
       <button
         onClick={onSave}
-        className="flex-1 rounded-2xl bg-gradient-to-r from-[#0f2d52] to-[#1565c0] py-3 text-sm font-bold text-white shadow-md hover:opacity-90 active:scale-[0.98]"
+        className="flex-1 rounded bg-[#009640] py-2.5 text-sm font-semibold text-white hover:bg-[#007A33]"
       >
         Salvar
       </button>
@@ -161,7 +161,7 @@ export default function AlunoPage({
             {!editing && (
               <button
                 onClick={startEdit}
-                className="flex items-center gap-1 rounded-xl bg-[#e8f4fd] px-3 py-1.5 text-xs font-bold text-[#1565c0] hover:bg-blue-100"
+                className="flex items-center gap-1 rounded-xl bg-[#EAF6EE] px-3 py-1.5 text-xs font-bold text-[#009640] hover:bg-blue-100"
               >
                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
                   <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
@@ -178,7 +178,7 @@ export default function AlunoPage({
                   <input
                     value={(dr[key] as string) ?? ""}
                     onChange={(e) => setDraft((d) => d ? { ...d, [key]: e.target.value } : d)}
-                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 outline-none focus:border-[#1565c0] focus:ring-2 focus:ring-[#1565c0]/20"
+                    className="w-full rounded-2xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-800 outline-none focus:border-[#009640] focus:ring-2 focus:ring-[#009640]/20"
                   />
                 ) : (
                   <p className="rounded-2xl bg-gray-50 px-4 py-2.5 text-sm font-medium text-gray-800">
@@ -243,7 +243,7 @@ export default function AlunoPage({
           {hasEditableArea && !editingNotas && (
             <button
               onClick={() => setEditingNotas(true)}
-              className="flex items-center gap-1 rounded-xl bg-[#e8f4fd] px-3 py-1.5 text-xs font-bold text-[#1565c0] hover:bg-blue-100"
+              className="flex items-center gap-1 rounded-xl bg-[#EAF6EE] px-3 py-1.5 text-xs font-bold text-[#009640] hover:bg-blue-100"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
@@ -265,7 +265,7 @@ export default function AlunoPage({
                 editable ? "bg-white ring-1 ring-gray-100" : "bg-gray-50 ring-1 ring-gray-200"
               }`}
             >
-              <div className="flex items-center justify-between bg-gradient-to-r from-[#0f2d52] to-[#1565c0] px-5 py-3">
+              <div className="flex items-center justify-between bg-[#009640] px-5 py-3">
                 <h3 className="font-bold text-white text-sm">{area.nome}</h3>
                 {!editable && <ReadOnlyBadge />}
               </div>
@@ -292,7 +292,7 @@ export default function AlunoPage({
                             const v = e.target.value === "" ? null : Number(e.target.value);
                             setNotasDraft((d) => ({ ...d, [areaKey]: { ...d[areaKey], [comp]: v } }));
                           }}
-                          className="w-20 rounded-xl border border-[#1565c0]/40 bg-white px-3 py-1.5 text-center text-sm font-bold outline-none focus:border-[#1565c0] focus:ring-2 focus:ring-[#1565c0]/20"
+                          className="w-20 rounded-xl border border-[#009640]/40 bg-white px-3 py-1.5 text-center text-sm font-bold outline-none focus:border-[#009640] focus:ring-2 focus:ring-[#009640]/20"
                         />
                       ) : (
                         <div className={`flex items-center gap-2 rounded-xl px-3 py-1.5 ${editable ? "" : "bg-gray-100"}`}>
@@ -348,7 +348,7 @@ export default function AlunoPage({
     return (
       <div className="space-y-4">
         {/* Card de totais */}
-        <div className="rounded-3xl bg-gradient-to-br from-[#0f2d52] to-[#1565c0] p-5 text-white shadow-lg">
+        <div className="rounded-3xl bg-[#009640] p-5 text-white shadow-lg">
           <p className="mb-3 text-sm font-semibold text-white/70">Frequência Total do Aluno</p>
           <div className="mb-4 flex items-end gap-2">
             <span className="text-4xl font-extrabold">{totalPct}%</span>
@@ -356,7 +356,7 @@ export default function AlunoPage({
           </div>
           <div className="mb-4 h-2.5 overflow-hidden rounded-full bg-white/20">
             <div
-              className={`h-full rounded-full ${totalPct >= 100 ? "bg-green-400" : totalPct >= 75 ? "bg-white" : "bg-red-300"}`}
+              className={`h-full rounded-full ${totalPct >= 100 ? "bg-white" : totalPct >= 75 ? "bg-white/70" : "bg-red-300"}`}
               style={{ width: `${Math.min(totalPct, 100)}%` }}
             />
           </div>
@@ -381,7 +381,7 @@ export default function AlunoPage({
           {hasEditableArea && !editingFreq && (
             <button
               onClick={() => setEditingFreq(true)}
-              className="flex items-center gap-1 rounded-xl bg-[#e8f4fd] px-3 py-1.5 text-xs font-bold text-[#1565c0] hover:bg-blue-100"
+              className="flex items-center gap-1 rounded-xl bg-[#EAF6EE] px-3 py-1.5 text-xs font-bold text-[#009640] hover:bg-blue-100"
             >
               <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
                 <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
@@ -403,7 +403,7 @@ export default function AlunoPage({
           const isInterarea    = areaKey === "interarea";
           const headerGradient = isInterarea
             ? "from-[#b45309] to-[#d97706]"
-            : "from-[#0f2d52] to-[#1565c0]";
+            : "from-[#007A33] to-[#009640]";
 
           return (
             <div
@@ -435,7 +435,7 @@ export default function AlunoPage({
                         onChange={(e) =>
                           setFreqDraft((d) => ({ ...d, [areaKey]: { ...d[areaKey], presencas: Number(e.target.value) } }))
                         }
-                        className="w-full rounded-xl border border-[#1565c0]/40 bg-white px-3 py-2 text-center text-sm font-bold outline-none focus:border-[#1565c0] focus:ring-2 focus:ring-[#1565c0]/20"
+                        className="w-full rounded-xl border border-[#009640]/40 bg-white px-3 py-2 text-center text-sm font-bold outline-none focus:border-[#009640] focus:ring-2 focus:ring-[#009640]/20"
                       />
                     </div>
                     <div>
@@ -447,7 +447,7 @@ export default function AlunoPage({
                         onChange={(e) =>
                           setFreqDraft((d) => ({ ...d, [areaKey]: { ...d[areaKey], totalAulas: Number(e.target.value) } }))
                         }
-                        className="w-full rounded-xl border border-[#1565c0]/40 bg-white px-3 py-2 text-center text-sm font-bold outline-none focus:border-[#1565c0] focus:ring-2 focus:ring-[#1565c0]/20"
+                        className="w-full rounded-xl border border-[#009640]/40 bg-white px-3 py-2 text-center text-sm font-bold outline-none focus:border-[#009640] focus:ring-2 focus:ring-[#009640]/20"
                       />
                     </div>
                   </div>
@@ -455,7 +455,7 @@ export default function AlunoPage({
                   <>
                     <div className="mb-3 h-2.5 overflow-hidden rounded-full bg-gray-100">
                       <div
-                        className={`h-full rounded-full ${p >= 100 ? "bg-green-500" : p >= 75 ? "bg-[#1565c0]" : "bg-red-400"}`}
+                        className={`h-full rounded-full ${p >= 100 ? "bg-[#009640]" : p >= 75 ? "bg-[#009640]/60" : "bg-red-400"}`}
                         style={{ width: `${Math.min(p, 100)}%` }}
                       />
                     </div>
@@ -541,7 +541,7 @@ export default function AlunoPage({
                     value={editObsText}
                     onChange={(e) => setEditObsText(e.target.value)}
                     rows={3}
-                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#1565c0] focus:bg-white focus:ring-2 focus:ring-[#1565c0]/20"
+                    className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#009640] focus:bg-white focus:ring-2 focus:ring-[#009640]/20"
                   />
                   <div className="mt-2 flex gap-2">
                     <button
@@ -552,7 +552,7 @@ export default function AlunoPage({
                     </button>
                     <button
                       onClick={saveEditObs}
-                      className="rounded-xl bg-gradient-to-r from-[#0f2d52] to-[#1565c0] px-3 py-1.5 text-xs font-bold text-white hover:opacity-90"
+                      className="rounded-xl bg-[#009640] px-3 py-1.5 text-xs font-bold text-white hover:opacity-90"
                     >
                       Salvar
                     </button>
@@ -564,7 +564,7 @@ export default function AlunoPage({
                     <span className="text-xs font-semibold text-gray-400">{o.data}</span>
                     <button
                       onClick={() => startEditObs(o)}
-                      className="text-xs font-semibold text-[#1565c0] hover:underline"
+                      className="text-xs font-semibold text-[#009640] hover:underline"
                     >
                       Editar
                     </button>
@@ -584,12 +584,12 @@ export default function AlunoPage({
             onChange={(e) => setNovaObs(e.target.value)}
             placeholder="Digite a observação pedagógica..."
             rows={3}
-            className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#1565c0] focus:bg-white focus:ring-2 focus:ring-[#1565c0]/20"
+            className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#009640] focus:bg-white focus:ring-2 focus:ring-[#009640]/20"
           />
           <button
             onClick={addObs}
             disabled={!novaObs.trim()}
-            className="mt-3 w-full rounded-2xl bg-gradient-to-r from-[#0f2d52] to-[#1565c0] py-3 text-sm font-bold text-white shadow-md transition hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
+            className="mt-3 w-full rounded-2xl bg-[#009640] py-3 text-sm font-bold text-white shadow-md transition hover:opacity-90 active:scale-[0.98] disabled:opacity-50"
           >
             Salvar observação
           </button>
@@ -605,7 +605,7 @@ export default function AlunoPage({
       {/* Voltar */}
       <Link
         href={`/professor/turmas/${turmaId}`}
-        className="mb-5 flex items-center gap-1.5 text-sm font-medium text-[#1565c0]"
+        className="mb-5 flex items-center gap-1 text-sm font-medium text-[#009640] hover:underline"
       >
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
           <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
@@ -621,7 +621,7 @@ export default function AlunoPage({
       )}
 
       {/* Cabeçalho do aluno */}
-      <div className="mb-6 flex items-center gap-4 rounded-3xl bg-gradient-to-br from-[#0f2d52] to-[#1565c0] p-5 text-white shadow-lg">
+      <div className="mb-6 flex items-center gap-4 rounded-3xl bg-[#009640] p-5 text-white shadow-lg">
         <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-white/25 text-xl font-bold ring-2 ring-white/30">
           {getInitials(aluno.nome)}
         </div>

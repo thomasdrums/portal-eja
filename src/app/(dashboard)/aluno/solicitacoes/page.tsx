@@ -2,17 +2,23 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { alunoSolicitacoes, tiposDocumento, type Solicitacao, type StatusSolicitacao } from "@/lib/mock-data/aluno";
+import { ChevronLeft } from "lucide-react";
+import {
+  alunoSolicitacoes,
+  tiposDocumento,
+  type Solicitacao,
+  type StatusSolicitacao,
+} from "@/lib/mock-data/aluno";
 
-const statusConfig: Record<StatusSolicitacao, { label: string; classes: string; dot: string }> = {
-  EM_ANALISE:       { label: "Em análise",       classes: "bg-yellow-50 text-yellow-700", dot: "bg-yellow-400" },
-  EM_PROCESSAMENTO: { label: "Em processamento", classes: "bg-blue-50 text-blue-700",     dot: "bg-blue-500"   },
-  CONCLUIDA:        { label: "Concluída",         classes: "bg-green-50 text-green-700",   dot: "bg-green-500"  },
+const statusConfig: Record<StatusSolicitacao, { label: string; classes: string }> = {
+  EM_ANALISE:       { label: "Em análise",       classes: "bg-yellow-50 text-yellow-700" },
+  EM_PROCESSAMENTO: { label: "Em processamento", classes: "bg-blue-50 text-blue-700" },
+  CONCLUIDA:        { label: "Concluída",         classes: "bg-[#EAF6EE] text-[#007A33]" },
 };
 
 function formatNow(): string {
   const now = new Date();
-  return now.toLocaleDateString("pt-BR") + " " + now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  return `${now.toLocaleDateString("pt-BR")} ${now.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}`;
 }
 
 export default function SolicitacoesPage() {
@@ -33,32 +39,33 @@ export default function SolicitacoesPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl px-4 py-6">
-      {/* Back */}
-      <Link
-        href="/aluno"
-        className="mb-5 flex items-center gap-1.5 text-sm font-medium text-[#1565c0]"
-      >
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-        </svg>
-        Voltar
-      </Link>
+    <div className="mx-auto max-w-3xl space-y-5">
+      <div className="flex items-center gap-2">
+        <Link
+          href="/aluno"
+          className="flex items-center gap-1 text-sm font-medium text-[#009640] hover:underline"
+        >
+          <ChevronLeft size={16} />
+          Voltar
+        </Link>
+      </div>
 
-      <h1 className="mb-6 text-xl font-bold text-[#0f2d52]">Solicitações</h1>
+      <div>
+        <h1 className="text-xl font-semibold text-gray-900">Solicitações de Documentos</h1>
+        <p className="mt-0.5 text-sm text-[#4B5563]">Solicite documentos acadêmicos e acompanhe o status</p>
+      </div>
 
-      {/* Nova solicitação */}
-      <div className="mb-6 rounded-3xl bg-white p-6 shadow-md ring-1 ring-gray-100">
-        <h2 className="mb-4 font-bold text-gray-800">Nova Solicitação</h2>
-
+      {/* Formulário */}
+      <div className="rounded-lg border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <h2 className="mb-4 text-sm font-semibold text-gray-800">Nova Solicitação</h2>
         <div className="mb-4">
-          <label className="mb-1.5 block text-sm font-semibold text-gray-700">
+          <label className="mb-1.5 block text-xs font-semibold text-[#4B5563]">
             Tipo de documento
           </label>
           <select
             value={tipo}
             onChange={(e) => setTipo(e.target.value)}
-            className="w-full rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 text-sm text-gray-800 outline-none focus:border-[#1565c0] focus:bg-white focus:ring-2 focus:ring-[#1565c0]/20"
+            className="w-full rounded border border-[#D9D9D9] bg-white px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#009640] focus:ring-2 focus:ring-[#009640]/20"
           >
             {tiposDocumento.map((t) => (
               <option key={t} value={t}>{t}</option>
@@ -67,47 +74,60 @@ export default function SolicitacoesPage() {
         </div>
 
         {sucesso && (
-          <div className="mb-4 rounded-2xl bg-green-50 px-4 py-3 text-sm font-medium text-green-700">
-            ✓ Solicitação enviada com sucesso!
+          <div className="mb-3 rounded border border-[#009640]/20 bg-[#EAF6EE] px-4 py-2.5 text-sm font-medium text-[#007A33]">
+            Solicitação enviada com sucesso.
           </div>
         )}
 
         <button
           onClick={handleSolicitar}
-          className="w-full rounded-2xl bg-gradient-to-r from-[#0f2d52] to-[#1565c0] py-3.5 text-sm font-bold text-white shadow-md transition hover:opacity-90 active:scale-[0.98]"
+          className="w-full rounded bg-[#009640] py-2.5 text-sm font-semibold text-white transition hover:bg-[#007A33]"
         >
           Solicitar documento
         </button>
       </div>
 
-      {/* Lista */}
-      <h2 className="mb-3 font-bold text-gray-800">Minhas Solicitações</h2>
+      {/* Tabela de solicitações */}
+      <div className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <div className="border-b border-[#E5E7EB] bg-[#F9FAFB] px-5 py-3">
+          <h2 className="text-sm font-semibold text-gray-800">Histórico de Solicitações</h2>
+        </div>
 
-      {lista.length === 0 ? (
-        <div className="rounded-3xl bg-white p-8 text-center shadow-sm ring-1 ring-gray-100">
-          <p className="text-sm text-gray-400">Nenhuma solicitação ainda.</p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {lista.map((sol) => {
-            const cfg = statusConfig[sol.status];
-            return (
-              <div key={sol.id} className="rounded-3xl bg-white p-5 shadow-md ring-1 ring-gray-100">
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <p className="font-semibold text-gray-800">{sol.tipo}</p>
-                    <p className="mt-0.5 text-xs text-gray-400">{sol.dataHora}</p>
-                  </div>
-                  <span className={`flex shrink-0 items-center gap-1.5 rounded-full px-3 py-1 text-xs font-bold ${cfg.classes}`}>
-                    <span className={`h-1.5 w-1.5 rounded-full ${cfg.dot}`} />
-                    {cfg.label}
-                  </span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
-      )}
+        {lista.length === 0 ? (
+          <p className="px-5 py-8 text-center text-sm text-[#4B5563]">
+            Nenhuma solicitação registrada.
+          </p>
+        ) : (
+          <table className="w-full text-sm">
+            <thead>
+              <tr className="bg-[#009640]">
+                <th className="px-5 py-3 text-left text-xs font-semibold text-white">Documento</th>
+                <th className="hidden px-5 py-3 text-left text-xs font-semibold text-white sm:table-cell">Data / Hora</th>
+                <th className="px-5 py-3 text-center text-xs font-semibold text-white">Situação</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E5E7EB]">
+              {lista.map((sol) => {
+                const cfg = statusConfig[sol.status];
+                return (
+                  <tr key={sol.id} className="hover:bg-[#F8FAFC]">
+                    <td className="px-5 py-3 font-medium text-gray-800">
+                      {sol.tipo}
+                      <p className="text-[11px] text-[#4B5563] sm:hidden">{sol.dataHora}</p>
+                    </td>
+                    <td className="hidden px-5 py-3 text-[#4B5563] sm:table-cell">{sol.dataHora}</td>
+                    <td className="px-5 py-3 text-center">
+                      <span className={`rounded px-2.5 py-0.5 text-[11px] font-semibold ${cfg.classes}`}>
+                        {cfg.label}
+                      </span>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
     </div>
   );
 }
