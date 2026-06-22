@@ -321,12 +321,6 @@ export function freqTextColor(p: number) {
   return "text-red-500";
 }
 
-export function freqEmoji(p: number) {
-  if (p >= 75) return "🟢";
-  if (p >= 50) return "🟡";
-  return "🔴";
-}
-
 // Agrega dados de frequência por área, calculando a média de todos os alunos
 export function freqMediaPorArea() {
   const areas = ["matematica","linguagens","cienciasNatureza","cienciasHumanas","interarea"] as const;

@@ -2,12 +2,12 @@
 
 @theme inline {
   --font-sans: var(--font-inter);
-  --color-sesi-green: #009640;
-  --color-sesi-dark: #007A33;
-  --color-sesi-light: #EAF6EE;
-  --color-eja-bg: #F5F5F5;
-  --color-eja-border: #D9D9D9;
-  --color-eja-text: #4B5563;
+  --color-sesi-green:       #009640;
+  --color-sesi-green-dark:  #007A33;
+  --color-sesi-green-light: #EAF6EE;
+  --color-bg:               #F5F5F5;
+  --color-border:           #D9D9D9;
+  --color-text:             #4B5563;
 }
 
 body {

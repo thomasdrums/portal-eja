@@ -2,11 +2,11 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { turmasCoord, professoresCoord, POLOS_COORD } from "@/lib/mock-data/coordenacao";
 import { relatorioAlunos, type AlunoRel, type Observacao } from "@/lib/mock-data/relatorios";
 import { SITUACAO_CFG } from "@/lib/mock-data/professor";
 
-// ── Configuração das áreas ────────────────────────────────
 const AREAS = [
   { key: "matematica"       as const, label: "Matemática",  comps: ["C1","C2","C3","C4","C5"] },
   { key: "linguagens"       as const, label: "Linguagens",  comps: ["C1","C2","C3","C4"]      },
@@ -27,9 +27,9 @@ function freqTextColor(p: number) { return p >= 75 ? "text-green-600" : p >= 50 
 function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
     <div>
-      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-400">{label}</label>
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#4B5563]">{label}</label>
       <select value={value} onChange={(e) => onChange(e.target.value)}
-        className="w-full rounded-2xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#1565c0] focus:ring-2 focus:ring-[#1565c0]/20">
+        className="w-full rounded border border-[#D9D9D9] bg-white px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#009640] focus:ring-2 focus:ring-[#009640]/20">
         <option value="">Todos</option>
         {options.map((o) => <option key={o} value={o}>{o}</option>)}
       </select>
@@ -37,7 +37,6 @@ function Select({ label, value, onChange, options }: { label: string; value: str
   );
 }
 
-// ── Painel completo do aluno (usado dentro do relatório) ──
 function PainelAluno({ aluno, obsExtra, onAddObs, onEditObs }: {
   aluno: AlunoRel;
   obsExtra: Observacao[];
@@ -56,58 +55,54 @@ function PainelAluno({ aluno, obsExtra, onAddObs, onEditObs }: {
   function submitObs() { if (!novaObs.trim()) return; onAddObs(novaObs.trim()); setNovaObs(""); }
   function submitEdit(idx: number) {
     if (!editTxt.trim()) return;
-    // Para obs iniciais: só pode editar as extra (obsExtra começa depois do índice das obs iniciais)
     const extraIdx = idx - aluno.observacoes.length;
     if (extraIdx >= 0) onEditObs(extraIdx, editTxt.trim());
     setEditIdx(null);
   }
 
   return (
-    <div className="rounded-3xl bg-white shadow-sm ring-1 ring-gray-100 overflow-hidden">
-      {/* Linha do aluno */}
+    <div className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
       <button
         onClick={() => setExpandido((v) => !v)}
-        className="w-full flex flex-wrap items-center justify-between gap-2 px-5 py-4 text-left hover:bg-gray-50 transition"
+        className="flex w-full flex-wrap items-center justify-between gap-2 px-5 py-4 text-left transition hover:bg-gray-50"
       >
         <div className="flex items-center gap-3">
           <span className="font-semibold text-gray-800">{aluno.nome}</span>
-          <span className="text-xs text-gray-500">{aluno.cidade}</span>
+          <span className="text-xs text-[#4B5563]">{aluno.cidade}</span>
         </div>
         <div className="flex items-center gap-2">
           <span className={`text-sm font-bold ${freqTextColor(freq)}`}>{freq}%</span>
-          <span className={`rounded-full px-2.5 py-0.5 text-xs font-semibold ${cfg.classes}`}>{cfg.label}</span>
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className={`h-4 w-4 text-gray-400 transition-transform ${expandido ? "rotate-90" : ""}`}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M8.25 4.5l7.5 7.5-7.5 7.5" />
-          </svg>
+          <span className={`rounded px-2.5 py-0.5 text-xs font-semibold ${cfg.classes}`}>{cfg.label}</span>
+          <ChevronLeft
+            size={14}
+            className={`text-gray-400 transition-transform ${expandido ? "-rotate-90" : "rotate-180"}`}
+          />
         </div>
       </button>
 
-      {/* Conteúdo expandido */}
       {expandido && (
-        <div className="border-t border-gray-50 px-5 pb-5 pt-4 space-y-5">
-          {/* Frequência por área */}
+        <div className="space-y-5 border-t border-[#E5E7EB] px-5 pb-5 pt-4">
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">Frequência por área</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#4B5563]">Frequência por área</p>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-5">
               {AREAS.map((ar) => {
                 const f = aluno.freq[ar.key];
                 return (
-                  <div key={ar.key} className={`rounded-2xl p-3 text-center ${f >= 75 ? "bg-green-50" : f >= 50 ? "bg-amber-50" : "bg-red-50"}`}>
+                  <div key={ar.key} className={`rounded p-3 text-center ${f >= 75 ? "bg-[#EAF6EE]" : f >= 50 ? "bg-amber-50" : "bg-red-50"}`}>
                     <p className={`text-base font-extrabold ${freqTextColor(f)}`}>{f}%</p>
-                    <p className="text-xs text-gray-500">{ar.label}</p>
+                    <p className="text-xs text-[#4B5563]">{ar.label}</p>
                   </div>
                 );
               })}
-              <div className={`rounded-2xl p-3 text-center ${freq >= 75 ? "bg-green-50" : freq >= 50 ? "bg-amber-50" : "bg-red-50"}`}>
+              <div className={`rounded p-3 text-center ${freq >= 75 ? "bg-[#EAF6EE]" : freq >= 50 ? "bg-amber-50" : "bg-red-50"}`}>
                 <p className={`text-base font-extrabold ${freqTextColor(freq)}`}>{freq}%</p>
-                <p className="text-xs text-gray-500">Geral</p>
+                <p className="text-xs text-[#4B5563]">Geral</p>
               </div>
             </div>
           </div>
 
-          {/* Notas por competência */}
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">Notas por competência</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#4B5563]">Notas por competência</p>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
               {AREAS.map((ar) => (
                 <div key={ar.key}>
@@ -122,8 +117,8 @@ function PainelAluno({ aluno, obsExtra, onAddObs, onEditObs }: {
                         </div>
                       );
                     })}
-                    <div className="border-t border-gray-100 pt-1 flex justify-between text-xs">
-                      <span className="text-gray-400 font-medium">Média</span>
+                    <div className="flex justify-between border-t border-gray-100 pt-1 text-xs">
+                      <span className="font-medium text-gray-400">Média</span>
                       {(() => {
                         const vals = ar.comps.map((c) => aluno.notas[ar.key][c]).filter((v): v is number => v !== null);
                         const avg  = vals.length > 0 ? Math.round(vals.reduce((s, v) => s + v, 0) / vals.length) : null;
@@ -136,32 +131,30 @@ function PainelAluno({ aluno, obsExtra, onAddObs, onEditObs }: {
             </div>
           </div>
 
-          {/* Comentários pedagógicos */}
           <div>
-            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-gray-400">Comentários pedagógicos</p>
+            <p className="mb-2 text-xs font-bold uppercase tracking-wide text-[#4B5563]">Comentários pedagógicos</p>
             {todasObs.length === 0 && <p className="text-xs text-gray-400">Nenhuma observação registrada.</p>}
             <div className="space-y-2">
               {todasObs.map((o, i) => {
                 const isExtra = i >= aluno.observacoes.length;
-                const extraIdx = i - aluno.observacoes.length;
                 return (
-                  <div key={i} className="rounded-2xl bg-gray-50 px-4 py-3">
+                  <div key={i} className="rounded bg-gray-50 px-4 py-3">
                     {editIdx === i && isExtra ? (
                       <div className="space-y-2">
                         <textarea rows={2} value={editTxt} onChange={(e) => setEditTxt(e.target.value)}
-                          className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs outline-none focus:border-[#1565c0]" />
+                          className="w-full rounded border border-[#D9D9D9] px-3 py-2 text-xs outline-none focus:border-[#009640]" />
                         <div className="flex gap-2">
-                          <button onClick={() => submitEdit(i)} className="rounded-xl bg-[#1565c0] px-3 py-1 text-xs font-bold text-white">Salvar</button>
-                          <button onClick={() => setEditIdx(null)} className="rounded-xl border border-gray-200 px-3 py-1 text-xs text-gray-500">Cancelar</button>
+                          <button onClick={() => submitEdit(i)} className="rounded bg-[#009640] px-3 py-1 text-xs font-bold text-white">Salvar</button>
+                          <button onClick={() => setEditIdx(null)} className="rounded border border-[#D9D9D9] px-3 py-1 text-xs text-gray-500">Cancelar</button>
                         </div>
                       </div>
                     ) : (
                       <>
-                        <p className="text-xs text-gray-400 mb-1">{o.data} · {o.professor}</p>
+                        <p className="mb-1 text-xs text-gray-400">{o.data} · {o.professor}</p>
                         <p className="text-xs text-gray-700">{o.texto}</p>
                         {isExtra && (
-                          <button onClick={() => { setEditIdx(i); setEditTxt(o.texto); setEditIdx(i); setEditTxt(o.texto); }}
-                            className="mt-1 text-[10px] font-semibold text-[#1565c0] hover:underline">Editar</button>
+                          <button onClick={() => { setEditIdx(i); setEditTxt(o.texto); }}
+                            className="mt-1 text-[10px] font-semibold text-[#009640] hover:underline">Editar</button>
                         )}
                       </>
                     )}
@@ -170,14 +163,12 @@ function PainelAluno({ aluno, obsExtra, onAddObs, onEditObs }: {
               })}
             </div>
 
-            {/* Adicionar observação */}
-            <div className="mt-3 space-y-2 border-t border-gray-100 pt-3">
+            <div className="mt-3 space-y-2 border-t border-[#E5E7EB] pt-3">
               <textarea rows={2} value={novaObs} onChange={(e) => setNovaObs(e.target.value)}
                 placeholder="Adicionar comentário pedagógico…"
-                className="w-full rounded-xl border border-gray-200 px-3 py-2 text-xs outline-none focus:border-[#1565c0] focus:ring-1 focus:ring-[#1565c0]/20" />
-              {/* TODO: persistir no banco (Fase 2) */}
+                className="w-full rounded border border-[#D9D9D9] px-3 py-2 text-xs outline-none focus:border-[#009640] focus:ring-1 focus:ring-[#009640]/20" />
               <button onClick={submitObs} disabled={!novaObs.trim()}
-                className="rounded-xl bg-gradient-to-r from-[#0f2d52] to-[#1565c0] px-4 py-1.5 text-xs font-bold text-white disabled:opacity-40">
+                className="rounded bg-[#009640] px-4 py-1.5 text-xs font-bold text-white disabled:opacity-40 hover:bg-[#007A33]">
                 Adicionar
               </button>
             </div>
@@ -188,16 +179,13 @@ function PainelAluno({ aluno, obsExtra, onAddObs, onEditObs }: {
   );
 }
 
-// ── Página principal ────────────────────────────────────────
 export default function RelatoriosPage() {
   const [polo,      setPolo]      = useState("");
   const [profNome,  setProfNome]  = useState("");
   const [turmaNome, setTurmaNome] = useState("");
 
-  // Observações extra adicionadas pela coordenação (per-aluno)
   const [obsExtra, setObsExtra] = useState<Record<string, Observacao[]>>({});
 
-  // Filtrar turmas por polo e professor
   const turmasFiltradas = useMemo(() => turmasCoord.filter((t) => {
     const poloOk = !polo || t.polo === polo;
     const profOk = !profNome || t.professores.includes(profNome);
@@ -212,7 +200,6 @@ export default function RelatoriosPage() {
   const alunos = turmaSelecionada ? relatorioAlunos.filter((a) => a.turmaNome === turmaSelecionada.nome) : [];
 
   function addObs(alunoId: string, texto: string) {
-    // TODO: persistir no banco (Fase 2)
     setObsExtra((m) => ({
       ...m,
       [alunoId]: [...(m[alunoId] ?? []), { data: new Date().toLocaleDateString("pt-BR"), professor: "Coordenação", texto }],
@@ -220,7 +207,6 @@ export default function RelatoriosPage() {
   }
 
   function editObs(alunoId: string, idx: number, texto: string) {
-    // TODO: persistir no banco (Fase 2)
     setObsExtra((m) => {
       const arr = [...(m[alunoId] ?? [])];
       arr[idx] = { ...arr[idx]!, texto };
@@ -229,71 +215,63 @@ export default function RelatoriosPage() {
   }
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6">
-      <Link href="/coordenacao" className="mb-5 flex items-center gap-1.5 text-sm font-medium text-[#1565c0]">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-        </svg>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <Link href="/coordenacao" className="inline-flex items-center gap-1.5 text-sm font-medium text-[#009640] hover:underline">
+        <ChevronLeft size={15} />
         Visão Geral
       </Link>
 
-      <div className="mb-6 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h1 className="text-xl font-extrabold text-[#0f2d52]">📊 Relatório por Turma</h1>
-          <p className="text-sm text-gray-500">Selecione polo, professor e turma para gerar o relatório</p>
+          <h1 className="text-xl font-semibold text-gray-900">Relatório por Turma</h1>
+          <p className="mt-0.5 text-sm text-[#4B5563]">Selecione polo, professor e turma para gerar o relatório</p>
         </div>
         <button
           disabled
           title="Disponível em breve"
-          className="rounded-2xl border border-gray-200 bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-400 cursor-not-allowed"
+          className="cursor-not-allowed rounded border border-[#D9D9D9] bg-gray-50 px-4 py-2 text-xs font-semibold text-gray-400"
         >
-          ⬇ Exportar relatório
-          {/* TODO: implementar exportação (Fase 2) */}
+          Exportar relatório
         </button>
       </div>
 
-      {/* Filtros */}
-      <div className="mb-6 grid grid-cols-1 gap-3 rounded-3xl bg-white p-5 shadow-md ring-1 ring-gray-100 sm:grid-cols-3">
-        <Select label="Polo"      value={polo}     onChange={(v) => { setPolo(v); setProfNome(""); setTurmaNome(""); }} options={[...POLOS_COORD]}   />
+      <div className="grid grid-cols-1 gap-3 rounded-lg border border-[#E5E7EB] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] sm:grid-cols-3">
+        <Select label="Polo"      value={polo}     onChange={(v) => { setPolo(v); setProfNome(""); setTurmaNome(""); }} options={[...POLOS_COORD]}                  />
         <Select label="Professor" value={profNome} onChange={(v) => { setProfNome(v); setTurmaNome(""); }}             options={professoresFiltrados.map((p) => p.nome)} />
-        <Select label="Turma"    value={turmaNome} onChange={setTurmaNome}                                             options={turmasFiltradas.map((t) => t.nome)} />
+        <Select label="Turma"     value={turmaNome} onChange={setTurmaNome}                                            options={turmasFiltradas.map((t) => t.nome)}  />
       </div>
 
-      {/* Estado: nenhuma turma selecionada */}
       {!turmaSelecionada && (
-        <div className="flex h-40 items-center justify-center rounded-3xl bg-white shadow-sm ring-1 ring-gray-100">
-          <p className="text-sm text-gray-400">Selecione uma turma para visualizar o relatório.</p>
+        <div className="flex h-40 items-center justify-center rounded-lg border border-[#E5E7EB] bg-white">
+          <p className="text-sm text-[#4B5563]">Selecione uma turma para visualizar o relatório.</p>
         </div>
       )}
 
-      {/* Relatório da turma */}
       {turmaSelecionada && (
         <div className="space-y-6">
-          {/* Dados da turma */}
-          <div className="overflow-hidden rounded-3xl bg-gradient-to-r from-[#0f2d52] to-[#1565c0] p-6 text-white shadow-lg">
+          <div className="overflow-hidden rounded-lg bg-[#009640] p-6 text-white">
             <h2 className="text-lg font-extrabold">{turmaSelecionada.nome}</h2>
             <p className="text-sm text-white/70">{turmaSelecionada.polo} · {turmaSelecionada.etapa} · {turmaSelecionada.ano}</p>
             <div className="mt-3 flex flex-wrap items-center gap-4 text-sm">
               <span className="text-white/80">{alunos.length} alunos</span>
-              <span className={`rounded-full px-2.5 py-0.5 text-xs font-bold ${turmaSelecionada.status === "ativa" ? "bg-green-100 text-green-700" : "bg-gray-200 text-gray-600"}`}>
+              <span className={`rounded px-2.5 py-0.5 text-xs font-bold ${turmaSelecionada.status === "ativa" ? "bg-white/90 text-[#007A33]" : "bg-white/20 text-white"}`}>
                 {turmaSelecionada.status === "ativa" ? "Ativa" : "Encerrada"}
               </span>
             </div>
             <div className="mt-3 flex flex-wrap gap-2">
               {turmaSelecionada.professores.map((p) => (
-                <span key={p} className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-semibold">{p}</span>
+                <span key={p} className="rounded bg-white/20 px-2.5 py-0.5 text-xs font-semibold">{p}</span>
               ))}
             </div>
           </div>
 
-          {/* Alunos */}
           {alunos.length === 0 ? (
-            <div className="flex h-24 items-center justify-center rounded-3xl bg-white shadow-sm ring-1 ring-gray-100">
-              <p className="text-sm text-gray-400">Nenhum aluno registrado nesta turma.</p>
+            <div className="flex h-24 items-center justify-center rounded-lg border border-[#E5E7EB] bg-white">
+              <p className="text-sm text-[#4B5563]">Nenhum aluno registrado nesta turma.</p>
             </div>
           ) : (
             <div className="space-y-3">
-              <p className="text-sm font-bold uppercase tracking-wide text-gray-400">Alunos ({alunos.length})</p>
+              <p className="text-xs font-bold uppercase tracking-wide text-[#4B5563]">Alunos ({alunos.length})</p>
               {alunos.map((a) => (
                 <PainelAluno
                   key={a.id}

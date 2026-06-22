@@ -20,7 +20,14 @@
       "PowerShell(\\(Get-Command npm\\).Source)",
       "Bash(git init *)",
       "Bash(git add *)",
-      "Bash(git commit -m ' *)"
+      "Bash(git commit -m ' *)",
+      "Bash(gh repo *)",
+      "Bash(npm install *)",
+      "Bash(node -e \"require\\('lucide-react'\\); console.log\\('OK'\\)\")",
+      "Bash(npx next *)",
+      "PowerShell(cd \"C:\\\\Users\\\\alves\\\\Documents\\\\EJA\"; npx tsc --noEmit; if \\($LASTEXITCODE -eq 0\\) { \"✅ Sem erros de TypeScript\" } else { \"❌ Erros encontrados — código $LASTEXITCODE\" })",
+      "Bash(npx tsc *)",
+      "Bash(echo \"Exit: $?\")"
     ]
   }
 }

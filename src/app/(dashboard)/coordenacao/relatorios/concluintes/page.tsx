@@ -2,12 +2,26 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { relatorioAlunos, POLOS } from "@/lib/mock-data/relatorios";
 
 const concluintes = relatorioAlunos.filter((a) => a.situacao === "APROVADO" && a.dataConclusao);
 const MESES  = [...new Set(concluintes.map((a) => a.dataConclusao!))].sort();
 const ANOS   = [...new Set(MESES.map((m) => m.split("/")[1]))].sort();
 const TURMAS = [...new Set(concluintes.map((a) => a.turmaNome))].sort();
+
+function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#4B5563]">{label}</label>
+      <select value={value} onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded border border-[#D9D9D9] bg-white px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#009640] focus:ring-2 focus:ring-[#009640]/20">
+        <option value="">Todos</option>
+        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </div>
+  );
+}
 
 export default function RelatorioConcluentesPage() {
   const [polo, setPolo] = useState("");
@@ -37,45 +51,31 @@ export default function RelatorioConcluentesPage() {
     concluintes: concluintes.filter((a) => a.turmaNome === t).length,
   }));
 
-  function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
-    return (
-      <div>
-        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-400">{label}</label>
-        <select value={value} onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-2xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#1565c0] focus:ring-2 focus:ring-[#1565c0]/20">
-          <option value="">Todos</option>
-          {options.map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
-      </div>
-    );
-  }
-
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6">
-      <Link href="/coordenacao/relatorios" className="mb-5 flex items-center gap-1.5 text-sm font-medium text-[#1565c0]">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-        </svg>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <Link href="/coordenacao/relatorios" className="inline-flex items-center gap-1.5 text-sm font-medium text-[#009640] hover:underline">
+        <ChevronLeft size={15} />
         Relatórios
       </Link>
 
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-extrabold text-[#0f2d52]">🎓 Relatório de Concluintes</h1>
-        <button className="rounded-2xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-500 shadow-sm hover:bg-gray-50">⬇ Exportar</button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold text-gray-900">Relatório de Concluintes</h1>
+        <button className="rounded border border-[#D9D9D9] bg-white px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50">
+          Exportar
+        </button>
       </div>
 
-      {/* Indicadores gerais */}
-      <div className="mb-6 grid grid-cols-2 gap-4 sm:grid-cols-3">
-        <div className="rounded-3xl bg-gradient-to-br from-[#166534] to-[#16a34a] p-5 text-white shadow-lg">
-          <p className="text-xs font-semibold text-white/60">Total de Concluintes</p>
-          <p className="text-3xl font-extrabold">{totalConcluintes}</p>
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+        <div className="rounded-lg border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+          <p className="text-xs font-semibold text-[#4B5563]">Total de Concluintes</p>
+          <p className="mt-1 text-3xl font-extrabold text-gray-900">{totalConcluintes}</p>
         </div>
-        <div className="rounded-3xl bg-gradient-to-br from-[#0f2d52] to-[#1565c0] p-5 text-white shadow-lg">
-          <p className="text-xs font-semibold text-white/60">% de Conclusão Geral</p>
-          <p className="text-3xl font-extrabold">{pctConclusao}%</p>
+        <div className="rounded-lg border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+          <p className="text-xs font-semibold text-[#4B5563]">Taxa de Conclusão</p>
+          <p className="mt-1 text-3xl font-extrabold text-[#009640]">{pctConclusao}%</p>
         </div>
-        <div className="col-span-2 rounded-3xl bg-white p-5 shadow-md ring-1 ring-gray-100 sm:col-span-1">
-          <p className="mb-2 text-xs font-bold text-gray-500">% por Turma</p>
+        <div className="col-span-2 rounded-lg border border-[#E5E7EB] bg-white p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] sm:col-span-1">
+          <p className="mb-2 text-xs font-bold text-[#4B5563]">% por Turma</p>
           <div className="space-y-2">
             {porTurma.filter((t) => t.concluintes > 0).map((t) => {
               const pct = Math.round((t.concluintes / t.total) * 100);
@@ -86,7 +86,7 @@ export default function RelatorioConcluentesPage() {
                     <span className="font-bold text-gray-700">{pct}%</span>
                   </div>
                   <div className="h-2 overflow-hidden rounded-full bg-gray-100">
-                    <div className="h-full rounded-full bg-green-500" style={{ width: `${pct}%` }} />
+                    <div className="h-full rounded-full bg-[#009640]" style={{ width: `${pct}%` }} />
                   </div>
                 </div>
               );
@@ -95,50 +95,58 @@ export default function RelatorioConcluentesPage() {
         </div>
       </div>
 
-      {/* Cards por polo */}
-      <div className="mb-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
         {porPolo.map((p) => (
-          <div key={p.polo} className="rounded-3xl bg-white p-4 text-center shadow-md ring-1 ring-gray-100">
-            <p className="text-xs font-semibold text-gray-500">{p.polo}</p>
-            <p className="mt-1 text-2xl font-extrabold text-[#0f2d52]">{p.concluintes}</p>
+          <div key={p.polo} className="rounded-lg border border-[#E5E7EB] bg-white p-4 text-center shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+            <p className="text-xs font-semibold text-[#4B5563]">{p.polo}</p>
+            <p className="mt-1 text-2xl font-extrabold text-gray-900">{p.concluintes}</p>
             <p className="text-xs text-gray-400">de {p.total}</p>
             <div className="mx-auto mt-2 h-1.5 w-full overflow-hidden rounded-full bg-gray-100">
-              <div className="h-full rounded-full bg-green-500" style={{ width: `${p.total > 0 ? Math.round((p.concluintes / p.total) * 100) : 0}%` }} />
+              <div className="h-full rounded-full bg-[#009640]" style={{ width: `${p.total > 0 ? Math.round((p.concluintes / p.total) * 100) : 0}%` }} />
             </div>
           </div>
         ))}
       </div>
 
-      {/* Filtros */}
-      <div className="mb-6 grid grid-cols-3 gap-3 rounded-3xl bg-white p-5 shadow-md ring-1 ring-gray-100">
+      <div className="grid grid-cols-3 gap-3 rounded-lg border border-[#E5E7EB] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
         <Select label="Polo" value={polo} onChange={setPolo} options={[...POLOS]} />
         <Select label="Mês"  value={mes}  onChange={setMes}  options={MESES}      />
         <Select label="Ano"  value={ano}  onChange={setAno}  options={ANOS}       />
       </div>
 
-      {/* Lista */}
-      <div className="overflow-hidden rounded-3xl bg-white shadow-md ring-1 ring-gray-100">
-        <div className="hidden grid-cols-4 gap-4 bg-gradient-to-r from-[#0f2d52] to-[#1565c0] px-5 py-3 text-xs font-bold uppercase tracking-wide text-white sm:grid">
-          <span>Nome</span><span>Polo</span><span>Turma</span><span>Conclusão</span>
-        </div>
-        {filtered.length === 0 ? (
-          <div className="flex h-32 items-center justify-center">
-            <p className="text-sm text-gray-400">Nenhum concluinte com esses filtros.</p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-gray-50">
-            {filtered.map((a) => (
-              <li key={a.id} className="grid grid-cols-1 gap-1 px-5 py-4 text-sm sm:grid-cols-4 sm:items-center sm:gap-4">
-                <span className="font-semibold text-gray-800">{a.nome}</span>
-                <span className="text-gray-600">{a.polo}</span>
-                <span className="text-gray-600">{a.turmaNome}</span>
-                <span className="inline-block rounded-full bg-green-100 px-2.5 py-0.5 text-xs font-semibold text-green-700">
-                  🎓 {a.dataConclusao}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="overflow-x-auto rounded-lg border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-[#009640] text-left text-xs font-semibold uppercase tracking-wide text-white">
+              <th className="px-5 py-3">Nome</th>
+              <th className="px-3 py-3">Polo</th>
+              <th className="px-3 py-3">Turma</th>
+              <th className="px-3 py-3">Conclusão</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#E5E7EB]">
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="py-10 text-center text-sm text-[#4B5563]">
+                  Nenhum concluinte com esses filtros.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((a) => (
+                <tr key={a.id} className="hover:bg-[#F8FAFC]">
+                  <td className="px-5 py-3 font-semibold text-gray-800">{a.nome}</td>
+                  <td className="px-3 py-3 text-[#4B5563]">{a.polo}</td>
+                  <td className="px-3 py-3 text-[#4B5563]">{a.turmaNome}</td>
+                  <td className="px-3 py-3">
+                    <span className="inline-block rounded bg-[#EAF6EE] px-2.5 py-0.5 text-xs font-semibold text-[#007A33]">
+                      {a.dataConclusao}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

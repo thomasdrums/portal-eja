@@ -2,9 +2,23 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
+import { ChevronLeft } from "lucide-react";
 import { relatorioAlunos, POLOS } from "@/lib/mock-data/relatorios";
 
-const TURMAS  = [...new Set(relatorioAlunos.map((a) => a.turmaNome))].sort();
+const TURMAS = [...new Set(relatorioAlunos.map((a) => a.turmaNome))].sort();
+
+function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
+  return (
+    <div>
+      <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#4B5563]">{label}</label>
+      <select value={value} onChange={(e) => onChange(e.target.value)}
+        className="w-full rounded border border-[#D9D9D9] bg-white px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#009640] focus:ring-2 focus:ring-[#009640]/20">
+        <option value="">Todos</option>
+        {options.map((o) => <option key={o} value={o}>{o}</option>)}
+      </select>
+    </div>
+  );
+}
 
 export default function RelatorioCertificadosPage() {
   const [polo,  setPolo]  = useState("");
@@ -20,93 +34,84 @@ export default function RelatorioCertificadosPage() {
   const entregues = filtered.filter((a) => a.documentacao.certificadoRecebido).length;
   const pendentes = filtered.length - emitidos;
 
-  function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
-    return (
-      <div>
-        <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-gray-400">{label}</label>
-        <select value={value} onChange={(e) => onChange(e.target.value)}
-          className="w-full rounded-2xl border border-gray-200 bg-white px-3 py-2.5 text-sm text-gray-700 outline-none focus:border-[#1565c0] focus:ring-2 focus:ring-[#1565c0]/20">
-          <option value="">Todos</option>
-          {options.map((o) => <option key={o} value={o}>{o}</option>)}
-        </select>
-      </div>
-    );
-  }
-
   return (
-    <div className="mx-auto max-w-4xl px-4 py-6">
-      <Link href="/coordenacao/relatorios" className="mb-5 flex items-center gap-1.5 text-sm font-medium text-[#1565c0]">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-        </svg>
+    <div className="mx-auto max-w-4xl space-y-6">
+      <Link href="/coordenacao/relatorios" className="inline-flex items-center gap-1.5 text-sm font-medium text-[#009640] hover:underline">
+        <ChevronLeft size={15} />
         Relatórios
       </Link>
 
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-extrabold text-[#0f2d52]">📜 Relatório de Certificados</h1>
-        <button className="rounded-2xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-500 shadow-sm hover:bg-gray-50">⬇ Exportar</button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold text-gray-900">Relatório de Certificados</h1>
+        <button className="rounded border border-[#D9D9D9] bg-white px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50">
+          Exportar
+        </button>
       </div>
 
-      {/* Indicadores */}
-      <div className="mb-6 grid grid-cols-3 gap-4">
-        <div className="rounded-3xl bg-gradient-to-br from-[#166534] to-[#16a34a] p-5 text-white shadow-lg">
-          <p className="text-xs font-semibold text-white/60">Emitidos</p>
-          <p className="text-3xl font-extrabold">{emitidos}</p>
-        </div>
-        <div className="rounded-3xl bg-gradient-to-br from-[#0f2d52] to-[#1565c0] p-5 text-white shadow-lg">
-          <p className="text-xs font-semibold text-white/60">Entregues</p>
-          <p className="text-3xl font-extrabold">{entregues}</p>
-        </div>
-        <div className="rounded-3xl bg-gradient-to-br from-[#78350f] to-[#d97706] p-5 text-white shadow-lg">
-          <p className="text-xs font-semibold text-white/60">Pendentes</p>
-          <p className="text-3xl font-extrabold">{pendentes}</p>
-        </div>
+      <div className="grid grid-cols-3 gap-3">
+        {[
+          { label: "Emitidos",  value: emitidos,  extra: "bg-[#EAF6EE]",                          text: "text-[#007A33]" },
+          { label: "Entregues", value: entregues, extra: "border border-[#E5E7EB] bg-white",       text: "text-gray-900"  },
+          { label: "Pendentes", value: pendentes, extra: "border border-amber-100 bg-amber-50",    text: "text-amber-700" },
+        ].map((c) => (
+          <div key={c.label} className={`rounded-lg p-5 shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${c.extra}`}>
+            <p className="text-xs font-semibold text-[#4B5563]">{c.label}</p>
+            <p className={`mt-1 text-3xl font-extrabold ${c.text}`}>{c.value}</p>
+          </div>
+        ))}
       </div>
 
-      {/* Filtros */}
-      <div className="mb-6 grid grid-cols-2 gap-3 rounded-3xl bg-white p-5 shadow-md ring-1 ring-gray-100">
+      <div className="grid grid-cols-2 gap-3 rounded-lg border border-[#E5E7EB] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
         <Select label="Polo"  value={polo}  onChange={setPolo}  options={[...POLOS]} />
         <Select label="Turma" value={turma} onChange={setTurma} options={TURMAS}     />
       </div>
 
-      {/* Tabela */}
-      <div className="overflow-hidden rounded-3xl bg-white shadow-md ring-1 ring-gray-100">
-        <div className="hidden grid-cols-7 gap-2 bg-gradient-to-r from-[#0f2d52] to-[#1565c0] px-5 py-3 text-xs font-bold uppercase tracking-wide text-white sm:grid">
-          <span className="col-span-2">Nome</span>
-          <span>Turma</span>
-          <span className="text-center">Histórico</span>
-          <span className="text-center">Certificado</span>
-          <span>Emissão</span>
-          <span>Entrega</span>
-        </div>
-        {filtered.length === 0 ? (
-          <div className="flex h-32 items-center justify-center">
-            <p className="text-sm text-gray-400">Nenhum aluno encontrado.</p>
-          </div>
-        ) : (
-          <ul className="divide-y divide-gray-50">
-            {filtered.map((a) => (
-              <li key={a.id} className="grid grid-cols-1 gap-1 px-5 py-4 text-sm sm:grid-cols-7 sm:items-center sm:gap-2">
-                <span className="col-span-2 font-semibold text-gray-800">{a.nome}<span className="ml-2 text-xs font-normal text-gray-400">{a.polo}</span></span>
-                <span className="text-gray-600">{a.turmaNome}</span>
-                <span className="text-center">
-                  {a.documentacao.historicoEntregue
-                    ? <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">✓</span>
-                    : <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-400">—</span>}
-                </span>
-                <span className="text-center">
-                  {a.documentacao.certificadoRecebido
-                    ? <span className="rounded-full bg-green-100 px-2 py-0.5 text-xs font-bold text-green-700">Recebido</span>
-                    : a.documentacao.certificadoEmitido
-                    ? <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-bold text-blue-700">Emitido</span>
-                    : <span className="rounded-full bg-amber-100 px-2 py-0.5 text-xs font-bold text-amber-700">Pendente</span>}
-                </span>
-                <span className="text-xs text-gray-500">{a.certificadoDataEmissao ?? "—"}</span>
-                <span className="text-xs text-gray-500">{a.certificadoDataEntrega ?? "—"}</span>
-              </li>
-            ))}
-          </ul>
-        )}
+      <div className="overflow-x-auto rounded-lg border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <table className="w-full text-sm">
+          <thead>
+            <tr className="bg-[#009640] text-left text-xs font-semibold uppercase tracking-wide text-white">
+              <th className="px-5 py-3">Nome</th>
+              <th className="px-3 py-3">Turma</th>
+              <th className="px-3 py-3 text-center">Histórico</th>
+              <th className="px-3 py-3 text-center">Certificado</th>
+              <th className="px-3 py-3">Emissão</th>
+              <th className="px-3 py-3">Entrega</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#E5E7EB]">
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-10 text-center text-sm text-[#4B5563]">
+                  Nenhum aluno encontrado.
+                </td>
+              </tr>
+            ) : (
+              filtered.map((a) => (
+                <tr key={a.id} className="hover:bg-[#F8FAFC]">
+                  <td className="px-5 py-3 font-semibold text-gray-800">
+                    {a.nome}
+                    <span className="ml-2 text-xs font-normal text-[#4B5563]">{a.polo}</span>
+                  </td>
+                  <td className="px-3 py-3 text-[#4B5563]">{a.turmaNome}</td>
+                  <td className="px-3 py-3 text-center">
+                    {a.documentacao.historicoEntregue
+                      ? <span className="rounded bg-[#EAF6EE] px-2 py-0.5 text-xs font-bold text-[#007A33]">Sim</span>
+                      : <span className="rounded bg-gray-100 px-2 py-0.5 text-xs text-gray-400">—</span>}
+                  </td>
+                  <td className="px-3 py-3 text-center">
+                    {a.documentacao.certificadoRecebido
+                      ? <span className="rounded bg-[#EAF6EE] px-2 py-0.5 text-xs font-bold text-[#007A33]">Recebido</span>
+                      : a.documentacao.certificadoEmitido
+                      ? <span className="rounded bg-[#EAF6EE] px-2 py-0.5 text-xs font-bold text-[#007A33]">Emitido</span>
+                      : <span className="rounded bg-amber-50 px-2 py-0.5 text-xs font-bold text-amber-700">Pendente</span>}
+                  </td>
+                  <td className="px-3 py-3 text-xs text-[#4B5563]">{a.certificadoDataEmissao ?? "—"}</td>
+                  <td className="px-3 py-3 text-xs text-[#4B5563]">{a.certificadoDataEntrega ?? "—"}</td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
       </div>
     </div>
   );

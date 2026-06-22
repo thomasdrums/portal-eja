@@ -1,24 +1,25 @@
 import Link from "next/link";
-import { dadosPorPolo, relatorioAlunos, freqColor, freqTextColor, POLOS } from "@/lib/mock-data/relatorios";
+import { ChevronLeft } from "lucide-react";
+import { dadosPorPolo, relatorioAlunos, freqColor, freqTextColor } from "@/lib/mock-data/relatorios";
 
 export default function RelatorioPorPoloPage() {
   const polos = dadosPorPolo();
 
   return (
-    <div className="mx-auto max-w-5xl px-4 py-6">
-      <Link href="/coordenacao/relatorios" className="mb-5 flex items-center gap-1.5 text-sm font-medium text-[#1565c0]">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.5} className="h-4 w-4">
-          <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 19.5L8.25 12l7.5-7.5" />
-        </svg>
+    <div className="mx-auto max-w-5xl space-y-6">
+      <Link href="/coordenacao/relatorios" className="inline-flex items-center gap-1.5 text-sm font-medium text-[#009640] hover:underline">
+        <ChevronLeft size={15} />
         Relatórios
       </Link>
 
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-xl font-extrabold text-[#0f2d52]">📍 Relatório por Polo</h1>
-        <button className="rounded-2xl border border-gray-200 bg-white px-4 py-2 text-xs font-semibold text-gray-500 shadow-sm hover:bg-gray-50">⬇ Exportar</button>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-xl font-semibold text-gray-900">Relatório por Polo</h1>
+        <button className="rounded border border-[#D9D9D9] bg-white px-4 py-2 text-xs font-semibold text-gray-600 hover:bg-gray-50">
+          Exportar
+        </button>
       </div>
 
-      <div className="grid gap-6 sm:grid-cols-2">
+      <div className="grid gap-4 sm:grid-cols-2">
         {polos.map((p) => {
           const alunosDoPolo = relatorioAlunos.filter((a) => a.polo === p.polo);
           const pctConclusao = p.alunos > 0 ? Math.round((p.concluintes / p.alunos) * 100) : 0;
@@ -35,41 +36,37 @@ export default function RelatorioPorPoloPage() {
           });
 
           return (
-            <div key={p.polo} className="overflow-hidden rounded-3xl bg-white shadow-lg ring-1 ring-gray-100">
-              {/* Header */}
-              <div className="bg-gradient-to-r from-[#0f2d52] to-[#1565c0] px-6 py-4">
-                <h2 className="text-lg font-extrabold text-white">📍 Polo {p.polo}</h2>
+            <div key={p.polo} className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+              <div className="bg-[#009640] px-6 py-4">
+                <h2 className="text-base font-bold text-white">Polo {p.polo}</h2>
               </div>
 
-              {/* Métricas principais */}
-              <div className="grid grid-cols-3 gap-px bg-gray-100">
+              <div className="grid grid-cols-3 gap-px bg-[#E5E7EB]">
                 {[
                   { label: "Alunos",      value: p.alunos      },
                   { label: "Professores", value: p.professores  },
                   { label: "Turmas",      value: p.turmas       },
                 ].map((m) => (
                   <div key={m.label} className="bg-white p-4 text-center">
-                    <p className="text-2xl font-extrabold text-[#0f2d52]">{m.value}</p>
-                    <p className="text-xs text-gray-500">{m.label}</p>
+                    <p className="text-2xl font-extrabold text-gray-900">{m.value}</p>
+                    <p className="text-xs text-[#4B5563]">{m.label}</p>
                   </div>
                 ))}
               </div>
 
-              <div className="p-5 space-y-5">
-                {/* Frequência média geral */}
+              <div className="space-y-4 p-5">
                 <div>
                   <div className="mb-1 flex items-center justify-between">
                     <span className="text-sm font-semibold text-gray-700">Frequência Média Geral</span>
-                    <span className={`font-extrabold text-sm ${freqTextColor(p.freqGeral)}`}>{p.freqGeral}%</span>
+                    <span className={`text-sm font-extrabold ${freqTextColor(p.freqGeral)}`}>{p.freqGeral}%</span>
                   </div>
                   <div className="h-3 overflow-hidden rounded-full bg-gray-100">
                     <div className={`h-full rounded-full ${freqColor(p.freqGeral)}`} style={{ width: `${p.freqGeral}%` }} />
                   </div>
                 </div>
 
-                {/* Frequência por área */}
                 <div>
-                  <p className="mb-2 text-xs font-bold text-gray-500">Frequência por Área</p>
+                  <p className="mb-2 text-xs font-bold text-[#4B5563]">Frequência por Área</p>
                   <div className="space-y-2">
                     {areaAvgs.map((a) => (
                       <div key={a.key}>
@@ -85,15 +82,14 @@ export default function RelatorioPorPoloPage() {
                   </div>
                 </div>
 
-                {/* Concluintes e certificados */}
                 <div className="grid grid-cols-2 gap-3">
-                  <div className="rounded-2xl bg-green-50 p-3 text-center">
-                    <p className="text-xl font-extrabold text-green-700">{p.concluintes}</p>
-                    <p className="text-xs text-green-600">Concluintes ({pctConclusao}%)</p>
+                  <div className="rounded bg-[#EAF6EE] p-3 text-center">
+                    <p className="text-xl font-extrabold text-[#007A33]">{p.concluintes}</p>
+                    <p className="text-xs text-[#007A33]">Concluintes ({pctConclusao}%)</p>
                   </div>
-                  <div className="rounded-2xl bg-blue-50 p-3 text-center">
-                    <p className="text-xl font-extrabold text-[#1565c0]">{p.certificados}</p>
-                    <p className="text-xs text-blue-600">Certificados ({pctCert}%)</p>
+                  <div className="rounded border border-[#E5E7EB] bg-white p-3 text-center">
+                    <p className="text-xl font-extrabold text-gray-900">{p.certificados}</p>
+                    <p className="text-xs text-[#4B5563]">Certificados ({pctCert}%)</p>
                   </div>
                 </div>
               </div>

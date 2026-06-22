@@ -43,11 +43,13 @@ const MODULOS = [
 export default function CoordenacaoDashboardPage() {
   return (
     <div className="mx-auto max-w-4xl space-y-6">
+      {/* Cabeçalho */}
       <div>
         <h1 className="text-xl font-semibold text-gray-900">Portal EJA SESI</h1>
         <p className="mt-0.5 text-sm text-[#4B5563]">Coordenação — Acesso aos módulos</p>
       </div>
 
+      {/* Grade de módulos */}
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {MODULOS.map((m) => (
           <Link
