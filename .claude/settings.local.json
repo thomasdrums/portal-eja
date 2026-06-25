@@ -27,7 +27,14 @@
       "Bash(npx next *)",
       "PowerShell(cd \"C:\\\\Users\\\\alves\\\\Documents\\\\EJA\"; npx tsc --noEmit; if \\($LASTEXITCODE -eq 0\\) { \"✅ Sem erros de TypeScript\" } else { \"❌ Erros encontrados — código $LASTEXITCODE\" })",
       "Bash(npx tsc *)",
-      "Bash(echo \"Exit: $?\")"
+      "Bash(echo \"Exit: $?\")",
+      "Bash(git push *)",
+      "Bash(echo \"EXIT CODE: $?\")",
+      "Bash(npm run *)",
+      "Bash(grep -q \"Ready\\\\|Local:\\\\|started server\\\\|error\\\\|Error\" \"C:\\\\Users\\\\alves\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-alves-Documents-EJA\\\\dd646902-4b2e-4c4d-83d8-5c6eeb076564\\\\tasks\\\\b4v7om93q.output\")",
+      "Bash(break)",
+      "Bash(curl -s -o /dev/null -w \"login: %{http_code}\\\\n\" http://localhost:3000/login)",
+      "Bash(git commit -m 'feat: grade de lançamento de notas do professor + visão geral de competências *)"
     ]
   }
 }

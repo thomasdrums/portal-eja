@@ -5,6 +5,7 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { ChevronLeft, Search } from "lucide-react";
 import { professorTurmas, SITUACAO_CFG } from "@/lib/mock-data/professor";
+import { GradeNotas } from "@/components/professor/GradeNotas";
 
 export default function TurmaPage({
   params,
@@ -13,6 +14,7 @@ export default function TurmaPage({
 }) {
   const { turmaId } = use(params);
   const [busca, setBusca] = useState("");
+  const [aba, setAba] = useState<"alunos" | "notas">("alunos");
 
   const turma = professorTurmas.find((t) => t.id === turmaId);
   if (!turma) notFound();
@@ -44,6 +46,30 @@ export default function TurmaPage({
         </p>
       </div>
 
+      {/* Abas */}
+      <div className="flex gap-1 rounded-lg bg-gray-100 p-1">
+        <button
+          onClick={() => setAba("alunos")}
+          className={`flex-1 rounded py-2.5 text-xs font-semibold transition sm:text-sm ${
+            aba === "alunos" ? "bg-[#009640] text-white shadow-sm" : "text-[#4B5563] hover:text-[#009640]"
+          }`}
+        >
+          Lista de Alunos
+        </button>
+        <button
+          onClick={() => setAba("notas")}
+          className={`flex-1 rounded py-2.5 text-xs font-semibold transition sm:text-sm ${
+            aba === "notas" ? "bg-[#009640] text-white shadow-sm" : "text-[#4B5563] hover:text-[#009640]"
+          }`}
+        >
+          Lançar Notas
+        </button>
+      </div>
+
+      {aba === "notas" && <GradeNotas turma={turma} />}
+
+      {aba === "alunos" && (
+      <>
       {/* Busca */}
       <div className="relative">
         <Search size={15} className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-[#9CA3AF]" />
@@ -102,6 +128,8 @@ export default function TurmaPage({
           </table>
         )}
       </div>
+      </>
+      )}
     </div>
   );
 }
