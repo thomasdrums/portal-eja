@@ -22,11 +22,13 @@ const navByRole: Record<string, NavItem[]> = {
     { href: "/professor/relatorios", label: "Relatórios" },
   ],
   COORDENACAO: [
-    { href: "/coordenacao",                         label: "Visão Geral",   exact: true },
-    { href: "/coordenacao/gestao",                  label: "Gestão" },
-    { href: "/coordenacao/acompanhamento",          label: "Acompanhamento" },
-    { href: "/coordenacao/relatorios",              label: "Relatórios" },
-    { href: "/coordenacao/relatorios/solicitacoes", label: "Documentos" },
+    { href: "/coordenacao",                label: "Visão Geral",   exact: true },
+    { href: "/coordenacao/gestao",         label: "Gestão" },
+    { href: "/coordenacao/acompanhamento", label: "Acompanhamento" },
+    { href: "/coordenacao/relatorios",     label: "Relatórios",    exact: true },
+    { href: "/coordenacao/documentos",     label: "Documentos" },
+    { href: "/coordenacao/certificados",   label: "Certificados" },
+    { href: "/coordenacao/concluintes",    label: "Concluintes" },
   ],
 };
 

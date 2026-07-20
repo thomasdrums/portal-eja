@@ -27,6 +27,15 @@ export function isAtivo(situacao: SituacaoAluno): boolean {
   return situacao !== "EVADIDO" && situacao !== "DESISTENTE";
 }
 
+// Etapa do percurso do aluno — independente da situação.
+// AVA = Ambiente Virtual de Aprendizagem · RDS = Reconhecimento de Saberes.
+export type EtapaAluno = "AVA" | "RDS";
+
+export const ETAPA_CFG: Record<EtapaAluno, { label: string; descricao: string }> = {
+  AVA: { label: "AVA", descricao: "Ambiente Virtual de Aprendizagem" },
+  RDS: { label: "RDS", descricao: "Reconhecimento de Saberes" },
+};
+
 export type AlunoDoc = {
   historicoEntregue: boolean;
   certificadoEmitido: boolean;
@@ -58,18 +67,34 @@ export type Aluno = {
   id: string;
   ra: string;
   nome: string;
+  email: string;
   cidade: string;
   telefone: string;
   escolaridade: string;
   dataMatricula: string;
   situacao: SituacaoAluno;
+  // Etapa do percurso (AVA ou RDS), independente da situação.
+  etapa: EtapaAluno;
+  // Aluno ativo no portal (Gestão de Alunos pode inativar).
+  ativo: boolean;
   documentacao: AlunoDoc;
   notas: AlunoNotas;
   notasGrade: NotasGrade;
   frequencia: AlunoFrequencia;
+  // Observação pedagógica do aluno (preenchida no relatório da turma).
+  observacao?: string;
 };
 
-export type Turma = { id: string; nome: string; alunos: Aluno[] };
+export type Turma = {
+  id: string;
+  nome: string;
+  // Campos institucionais para o cabeçalho do relatório da turma.
+  polo: string;
+  etapaEnsino: string;
+  periodoLetivo: string;
+  professorResponsavel: string;
+  alunos: Aluno[];
+};
 
 // ── Configuração de áreas ─────────────────────────────────
 export const AREAS_CONFIG = [
@@ -180,17 +205,33 @@ function buildNotasGrade(notas: AlunoNotas): NotasGrade {
 
 // ── Turmas e alunos ────────────────────────────────────────
 type AlunoBase = Omit<Aluno, "notasGrade">;
-type TurmaBase = { id: string; nome: string; alunos: AlunoBase[] };
+type TurmaBase = {
+  id: string;
+  nome: string;
+  polo: string;
+  etapaEnsino: string;
+  periodoLetivo: string;
+  professorResponsavel: string;
+  alunos: AlunoBase[];
+};
 
 const turmasBase: TurmaBase[] = [
   {
     id: "t261",
     nome: "Turma 26.1",
+    polo: "Caruaru",
+    etapaEnsino: "Ensino Fundamental — Anos Finais (EJA)",
+    periodoLetivo: "2026.1",
+    professorResponsavel: "João Pereira",
     alunos: [
       {
         id: "a1",
         ra: "2026000101",
+        email: "joao.silva@aluno.ejasesi.org.br",
+        etapa: "AVA",
+        ativo: true,
         nome: "João Silva",
+        observacao: "Aluno demonstra bom progresso em Matemática, mas precisa reforçar as competências C2 e C5. Participação ativa nas aulas e entrega das atividades em dia.",
         cidade: "Caruaru",
         telefone: "(81) 98888-1101",
         escolaridade: "Ensino Fundamental Incompleto",
@@ -214,7 +255,11 @@ const turmasBase: TurmaBase[] = [
       {
         id: "a2",
         ra: "2026000102",
+        email: "maria.oliveira@aluno.ejasesi.org.br",
+        etapa: "AVA",
+        ativo: true,
         nome: "Maria Oliveira",
+        observacao: "Aluna concluiu todas as competências com excelência. Frequência integral e desempenho consistente. Recomendada para certificação.",
         cidade: "Recife",
         telefone: "(81) 98888-1102",
         escolaridade: "Ensino Fundamental Incompleto",
@@ -238,7 +283,11 @@ const turmasBase: TurmaBase[] = [
       {
         id: "a3",
         ra: "2026000103",
+        email: "jose.santos@aluno.ejasesi.org.br",
+        etapa: "RDS",
+        ativo: true,
         nome: "José Santos",
+        observacao: "Frequência regular. Apresenta dificuldade em Ciências da Natureza; orientado a refazer as atividades diagnósticas pendentes.",
         cidade: "Caruaru",
         telefone: "(81) 98888-1103",
         escolaridade: "Ensino Fundamental Incompleto",
@@ -262,7 +311,11 @@ const turmasBase: TurmaBase[] = [
       {
         id: "a4",
         ra: "2026000104",
+        email: "ana.souza@aluno.ejasesi.org.br",
+        etapa: "AVA",
+        ativo: false,
         nome: "Ana Souza",
+        observacao: "Aluna parou de acessar o AVA e não responde aos contatos da equipe. Situação registrada como Evadida após tentativas de retomada.",
         cidade: "Recife",
         telefone: "(81) 98888-1104",
         escolaridade: "Ensino Fundamental Incompleto",
@@ -286,7 +339,11 @@ const turmasBase: TurmaBase[] = [
       {
         id: "a5",
         ra: "2026000105",
+        email: "carlos.pereira@aluno.ejasesi.org.br",
+        etapa: "AVA",
+        ativo: true,
         nome: "Carlos Pereira",
+        observacao: "Bom engajamento nas aulas presenciais. Evolução perceptível em Matemática ao longo do bimestre.",
         cidade: "Caruaru",
         telefone: "(81) 98888-1105",
         escolaridade: "Ensino Fundamental Incompleto",
@@ -310,7 +367,11 @@ const turmasBase: TurmaBase[] = [
       {
         id: "a6",
         ra: "2026000106",
+        email: "fernanda.lima@aluno.ejasesi.org.br",
+        etapa: "RDS",
+        ativo: true,
         nome: "Fernanda Lima",
+        observacao: "Aluna informou que não poderá continuar por questões de trabalho. Registrada como Desistente após contato com a coordenação.",
         cidade: "Recife",
         telefone: "(81) 98888-1106",
         escolaridade: "Ensino Fundamental Incompleto",
@@ -334,6 +395,9 @@ const turmasBase: TurmaBase[] = [
       {
         id: "a7",
         ra: "2026000107",
+        email: "paulo.costa@aluno.ejasesi.org.br",
+        etapa: "RDS",
+        ativo: true,
         nome: "Paulo Costa",
         cidade: "Caruaru",
         telefone: "(81) 98888-1107",
@@ -358,7 +422,11 @@ const turmasBase: TurmaBase[] = [
       {
         id: "a8",
         ra: "2026000108",
+        email: "juliana.almeida@aluno.ejasesi.org.br",
+        etapa: "AVA",
+        ativo: true,
         nome: "Juliana Almeida",
+        observacao: "Ótimo desempenho em Linguagens. Frequência elevada e participação destacada nos encontros interárea.",
         cidade: "Recife",
         telefone: "(81) 98888-1108",
         escolaridade: "Ensino Fundamental Incompleto",
@@ -382,7 +450,11 @@ const turmasBase: TurmaBase[] = [
       {
         id: "a9",
         ra: "2026000109",
+        email: "roberto.ferreira@aluno.ejasesi.org.br",
+        etapa: "RDS",
+        ativo: true,
         nome: "Roberto Ferreira",
+        observacao: "Concluiu o percurso com ótimas notas em todas as áreas. Certificado emitido, aguardando retirada na unidade.",
         cidade: "Caruaru",
         telefone: "(81) 98888-1109",
         escolaridade: "Ensino Fundamental Incompleto",
@@ -406,6 +478,9 @@ const turmasBase: TurmaBase[] = [
       {
         id: "a10",
         ra: "2026000110",
+        email: "patricia.rodrigues@aluno.ejasesi.org.br",
+        etapa: "AVA",
+        ativo: true,
         nome: "Patrícia Rodrigues",
         cidade: "Recife",
         telefone: "(81) 98888-1110",
@@ -432,10 +507,17 @@ const turmasBase: TurmaBase[] = [
   {
     id: "t262",
     nome: "Turma 26.2",
+    polo: "Caruaru",
+    etapaEnsino: "Ensino Fundamental — Anos Finais (EJA)",
+    periodoLetivo: "2026.1",
+    professorResponsavel: "Carla Mendes",
     alunos: [
       {
         id: "b1",
         ra: "2026000201",
+        email: "maria.santos@aluno.ejasesi.org.br",
+        etapa: "AVA",
+        ativo: true,
         nome: "Maria Santos",
         cidade: "São Paulo",
         telefone: "(11) 95555-4444",
@@ -460,6 +542,9 @@ const turmasBase: TurmaBase[] = [
       {
         id: "b2",
         ra: "2026000202",
+        email: "carlos.oliveira@aluno.ejasesi.org.br",
+        etapa: "AVA",
+        ativo: false,
         nome: "Carlos Oliveira",
         cidade: "Campinas",
         telefone: "(19) 94444-5555",
@@ -484,6 +569,9 @@ const turmasBase: TurmaBase[] = [
       {
         id: "b3",
         ra: "2026000203",
+        email: "lucia.pereira@aluno.ejasesi.org.br",
+        etapa: "RDS",
+        ativo: true,
         nome: "Lucia Pereira",
         cidade: "Santos",
         telefone: "(13) 93333-6666",
@@ -510,10 +598,17 @@ const turmasBase: TurmaBase[] = [
   {
     id: "t263",
     nome: "Turma 26.3",
+    polo: "Recife",
+    etapaEnsino: "Ensino Médio (EJA)",
+    periodoLetivo: "2026.1",
+    professorResponsavel: "Rafael Costa",
     alunos: [
       {
         id: "c1",
         ra: "2026000301",
+        email: "roberto.lima@aluno.ejasesi.org.br",
+        etapa: "RDS",
+        ativo: true,
         nome: "Roberto Lima",
         cidade: "Ribeirão Preto",
         telefone: "(16) 92222-7777",
@@ -538,6 +633,9 @@ const turmasBase: TurmaBase[] = [
       {
         id: "c2",
         ra: "2026000302",
+        email: "fernanda.souza@aluno.ejasesi.org.br",
+        etapa: "AVA",
+        ativo: true,
         nome: "Fernanda Souza",
         cidade: "Sorocaba",
         telefone: "(15) 91111-8888",
@@ -564,10 +662,17 @@ const turmasBase: TurmaBase[] = [
   {
     id: "t264",
     nome: "Turma 26.4",
+    polo: "Recife",
+    etapaEnsino: "Ensino Médio (EJA)",
+    periodoLetivo: "2026.1",
+    professorResponsavel: "Adriana Lima",
     alunos: [
       {
         id: "d1",
         ra: "2026000401",
+        email: "beatriz.costa@aluno.ejasesi.org.br",
+        etapa: "AVA",
+        ativo: true,
         nome: "Beatriz Costa",
         cidade: "São Paulo",
         telefone: "(11) 90000-9999",
@@ -592,6 +697,9 @@ const turmasBase: TurmaBase[] = [
       {
         id: "d2",
         ra: "2026000402",
+        email: "paulo.rocha@aluno.ejasesi.org.br",
+        etapa: "RDS",
+        ativo: true,
         nome: "Paulo Rocha",
         cidade: "Mauá",
         telefone: "(11) 89999-0000",

@@ -87,12 +87,20 @@ function mediaInfo(campos: CamposCompetencia, total: number) {
   return { texto, cls };
 }
 
-export function GradeNotas({ turma }: { turma: Turma }) {
+export function GradeNotas({
+  turma,
+  readOnly = false,
+}: {
+  turma: Turma;
+  // Modo somente leitura (Coordenação): vê todas as áreas, sem editar.
+  readOnly?: boolean;
+}) {
   const { data: session } = useSession();
   const role = session?.user?.role ?? "PROFESSOR";
   const disciplina = session?.user?.disciplina ?? null;
 
-  const editableIds = notasEditaveis(disciplina, role);
+  // Em modo somente leitura nenhuma área é editável.
+  const editableIds = readOnly ? [] : notasEditaveis(disciplina, role);
 
   // Área selecionada — null segue a 1ª área editável do professor.
   const [areaPick, setAreaPick] = useState<AbaArea | null>(null);
@@ -177,7 +185,7 @@ export function GradeNotas({ turma }: { turma: Turma }) {
               }`}
             >
               {COMPETENCIAS_CONFIG[a].nome}
-              {!editavel && (
+              {!editavel && !readOnly && (
                 <Lock size={11} className={ativo ? "text-white/80" : "text-gray-400"} />
               )}
             </button>
@@ -196,8 +204,16 @@ export function GradeNotas({ turma }: { turma: Turma }) {
         </button>
       </div>
 
+      {/* Aviso de somente leitura — Coordenação (todas as áreas) */}
+      {readOnly && (
+        <div className="flex items-center gap-2 rounded-lg border border-[#CDEBD7] bg-[#EAF6EE] px-4 py-2.5 text-xs font-medium text-[#007A33]">
+          <Eye size={14} className="shrink-0" />
+          Visualização da Coordenação — todas as áreas em <strong>somente leitura</strong>.
+        </div>
+      )}
+
       {/* Aviso de somente leitura para área que o professor não leciona */}
-      {!isVisaoGeral && !areaEditavel && (
+      {!readOnly && !isVisaoGeral && !areaEditavel && (
         <div className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2.5 text-xs font-medium text-amber-800">
           <Lock size={14} className="shrink-0" />
           Você está visualizando <strong>{COMPETENCIAS_CONFIG[notaArea].nome}</strong>, uma área que
@@ -231,10 +247,12 @@ export function GradeNotas({ turma }: { turma: Turma }) {
       ) : (
         <>
           {/* Aviso de não-persistência */}
-          <div className="flex items-start gap-2 rounded-lg border border-[#D9D9D9] bg-[#F9FAFB] px-4 py-2.5 text-xs text-[#4B5563]">
-            <Info size={14} className="mt-0.5 shrink-0 text-[#9CA3AF]" />
-            As notas ainda não são salvas permanentemente (em breve, com o banco de dados).
-          </div>
+          {!readOnly && (
+            <div className="flex items-start gap-2 rounded-lg border border-[#D9D9D9] bg-[#F9FAFB] px-4 py-2.5 text-xs text-[#4B5563]">
+              <Info size={14} className="mt-0.5 shrink-0 text-[#9CA3AF]" />
+              As notas ainda não são salvas permanentemente (em breve, com o banco de dados).
+            </div>
+          )}
 
           {/* Grade de notas */}
           <div className="overflow-x-auto rounded-lg border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
@@ -403,22 +421,24 @@ export function GradeNotas({ turma }: { turma: Turma }) {
             </table>
           </div>
 
-          {/* Rodapé: salvar */}
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            {salvoMsg ? (
-              <p className="text-xs font-medium text-[#007A33]">✓ {salvoMsg}</p>
-            ) : (
-              <span />
-            )}
-            <button
-              onClick={handleSalvar}
-              disabled={!areaEditavel}
-              className="flex items-center gap-2 rounded bg-[#009640] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#007A33] disabled:cursor-not-allowed disabled:opacity-40"
-            >
-              <Save size={15} />
-              Salvar notas
-            </button>
-          </div>
+          {/* Rodapé: salvar — oculto em modo somente leitura */}
+          {!readOnly && (
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              {salvoMsg ? (
+                <p className="text-xs font-medium text-[#007A33]">✓ {salvoMsg}</p>
+              ) : (
+                <span />
+              )}
+              <button
+                onClick={handleSalvar}
+                disabled={!areaEditavel}
+                className="flex items-center gap-2 rounded bg-[#009640] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#007A33] disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                <Save size={15} />
+                Salvar notas
+              </button>
+            </div>
+          )}
         </>
       )}
     </div>

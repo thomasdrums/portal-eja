@@ -34,7 +34,10 @@
       "Bash(grep -q \"Ready\\\\|Local:\\\\|started server\\\\|error\\\\|Error\" \"C:\\\\Users\\\\alves\\\\AppData\\\\Local\\\\Temp\\\\claude\\\\C--Users-alves-Documents-EJA\\\\dd646902-4b2e-4c4d-83d8-5c6eeb076564\\\\tasks\\\\b4v7om93q.output\")",
       "Bash(break)",
       "Bash(curl -s -o /dev/null -w \"login: %{http_code}\\\\n\" http://localhost:3000/login)",
-      "Bash(git commit -m 'feat: grade de lançamento de notas do professor + visão geral de competências *)"
+      "Bash(git commit -m 'feat: grade de lançamento de notas do professor + visão geral de competências *)",
+      "Bash(echo \"EXIT: $?\")",
+      "PowerShell(npx tsc --noEmit)",
+      "Bash(git commit -m 'feat: coordenação com menu horizontal padronizado + gestão de alunos *)"
     ]
   }
 }

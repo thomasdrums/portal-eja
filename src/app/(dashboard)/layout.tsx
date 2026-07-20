@@ -2,7 +2,6 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { Topbar } from "@/components/layout/Topbar";
 import { MenuPrincipal } from "@/components/layout/MenuPrincipal";
-import { Sidebar } from "@/components/dashboard/Sidebar";
 
 export default async function DashboardLayout({
   children,
@@ -40,12 +39,8 @@ export default async function DashboardLayout({
   return (
     <div className="min-h-screen bg-[#F5F5F5]">
       <Topbar name={name ?? "Coordenação"} email={email} role="COORDENACAO" />
-      {/* Hambúrguer visível só no mobile; sidebar cuida do desktop */}
-      <MenuPrincipal role="COORDENACAO" mobileOnly />
-      <div className="flex" style={{ minHeight: "calc(100vh - 3.5rem)" }}>
-        <Sidebar />
-        <main className="min-w-0 flex-1 px-4 py-6 md:px-6">{children}</main>
-      </div>
+      <MenuPrincipal role="COORDENACAO" />
+      <main className="px-4 py-6 md:px-6">{children}</main>
     </div>
   );
 }

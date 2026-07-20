@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { ChevronLeft, Users, BookOpen } from "lucide-react";
+import { ChevronLeft, Users, BookOpen, GraduationCap } from "lucide-react";
 
 const ITENS = [
-  { href: "/coordenacao/professores",   Icon: Users,    title: "Gestão de Professores", desc: "Cadastrar, editar e inativar professores" },
-  { href: "/coordenacao/gestao-turmas", Icon: BookOpen, title: "Gestão de Turmas",       desc: "Criar, editar e encerrar turmas" },
+  { href: "/coordenacao/professores",   Icon: Users,         title: "Gestão de Professores", desc: "Cadastrar, editar e inativar professores" },
+  { href: "/coordenacao/gestao-turmas", Icon: BookOpen,      title: "Gestão de Turmas",       desc: "Criar, editar e encerrar turmas" },
+  { href: "/coordenacao/gestao-alunos", Icon: GraduationCap, title: "Gestão de Alunos",       desc: "Editar dados, redefinir senha e ativar/inativar alunos" },
 ] as const;
 
 export default function GestaoPage() {

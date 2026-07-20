@@ -21,19 +21,19 @@ const MODULOS = [
     desc: "Relatório por turma completo",
   },
   {
-    href: "/coordenacao/relatorios/solicitacoes",
+    href: "/coordenacao/documentos",
     Icon: FileText,
     title: "Documentos",
     desc: "Solicitações de documentos",
   },
   {
-    href: "/coordenacao/relatorios/certificados",
+    href: "/coordenacao/certificados",
     Icon: Award,
     title: "Certificados",
     desc: "Emissão e entrega",
   },
   {
-    href: "/coordenacao/relatorios/concluintes",
+    href: "/coordenacao/concluintes",
     Icon: GraduationCap,
     title: "Concluintes",
     desc: "Alunos que concluíram",
