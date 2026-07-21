@@ -77,7 +77,7 @@ export function Topbar({
         {open && (
           <div className="absolute right-0 top-full mt-2 w-52 rounded-lg border border-[#E5E7EB] bg-white py-1 shadow-[0_4px_16px_rgba(0,0,0,0.12)]">
             <Link
-              href="#"
+              href="/perfil"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-gray-700 transition hover:bg-[#F5F5F5]"
             >
@@ -85,7 +85,7 @@ export function Topbar({
               Meu Perfil
             </Link>
             <Link
-              href="#"
+              href="/alterar-senha"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-gray-700 transition hover:bg-[#F5F5F5]"
             >
@@ -93,7 +93,7 @@ export function Topbar({
               Alterar Senha
             </Link>
             <Link
-              href="#"
+              href="/configuracoes"
               onClick={() => setOpen(false)}
               className="flex items-center gap-2.5 px-4 py-2.5 text-[13px] text-gray-700 transition hover:bg-[#F5F5F5]"
             >

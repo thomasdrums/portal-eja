@@ -37,7 +37,9 @@
       "Bash(git commit -m 'feat: grade de lançamento de notas do professor + visão geral de competências *)",
       "Bash(echo \"EXIT: $?\")",
       "PowerShell(npx tsc --noEmit)",
-      "Bash(git commit -m 'feat: coordenação com menu horizontal padronizado + gestão de alunos *)"
+      "Bash(git commit -m 'feat: coordenação com menu horizontal padronizado + gestão de alunos *)",
+      "PowerShell(npx tsc --noEmit; if \\($?\\) { \"TSC OK\" })",
+      "Bash(git commit -m 'feat: telas de Meu Perfil, Alterar Senha e Configurações no menu de perfil *)"
     ]
   }
 }
