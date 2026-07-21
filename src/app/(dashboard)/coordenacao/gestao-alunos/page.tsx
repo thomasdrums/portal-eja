@@ -2,12 +2,14 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
-import { ChevronLeft, Search, Pencil, KeyRound, X, Check } from "lucide-react";
+import { ChevronLeft, Search, Pencil, KeyRound, X, Check, Plus } from "lucide-react";
 import {
   professorTurmas,
   SITUACAO_CFG,
   ETAPA_CFG,
+  isAtivo,
   type EtapaAluno,
+  type SituacaoAluno,
 } from "@/lib/mock-data/professor";
 
 // Linha da tabela: dados pessoais editáveis + turma de origem.
@@ -41,6 +43,26 @@ const alunosIniciais: AlunoRow[] = professorTurmas.flatMap((t) =>
 
 type FormData = Pick<AlunoRow, "nome" | "ra" | "cidade" | "telefone" | "email" | "etapa">;
 
+// Cadastro de novo aluno: dados pessoais + turma, etapa e situação.
+type NovoAlunoForm = Pick<
+  AlunoRow,
+  "nome" | "ra" | "cidade" | "telefone" | "email" | "etapa" | "situacao" | "turmaNome"
+>;
+
+const TURMAS_DISPONIVEIS = professorTurmas.map((t) => t.nome);
+const SITUACOES = Object.keys(SITUACAO_CFG) as SituacaoAluno[];
+
+const NOVO_ALUNO_VAZIO: NovoAlunoForm = {
+  nome: "",
+  ra: "",
+  cidade: "",
+  telefone: "",
+  email: "",
+  etapa: "AVA",
+  situacao: "CURSANDO",
+  turmaNome: TURMAS_DISPONIVEIS[0] ?? "",
+};
+
 export default function GestaoAlunosPage() {
   const [alunos, setAlunos] = useState<AlunoRow[]>(alunosIniciais);
   const [busca, setBusca] = useState("");
@@ -48,6 +70,11 @@ export default function GestaoAlunosPage() {
   // Modal de edição.
   const [editId, setEditId] = useState<string | null>(null);
   const [form, setForm] = useState<FormData | null>(null);
+
+  // Modal de cadastro.
+  const [novoAberto, setNovoAberto] = useState(false);
+  const [novoForm, setNovoForm] = useState<NovoAlunoForm>(NOVO_ALUNO_VAZIO);
+  const [erroNovo, setErroNovo] = useState("");
 
   // Mensagens transitórias (reset de senha / salvo) por aluno.
   const [flash, setFlash] = useState<Record<string, string>>({});
@@ -87,6 +114,32 @@ export default function GestaoAlunosPage() {
     showFlash(id, "Dados atualizados");
   }
 
+  function abrirCadastro() {
+    setNovoForm(NOVO_ALUNO_VAZIO);
+    setErroNovo("");
+    setNovoAberto(true);
+  }
+
+  function salvarCadastro() {
+    if (!novoForm.nome.trim() || !novoForm.ra.trim()) {
+      setErroNovo("Nome e RA são obrigatórios.");
+      return;
+    }
+    // TODO: persistir no banco (Fase 2)
+    const id = `al${Date.now()}`;
+    const novo: AlunoRow = {
+      ...novoForm,
+      nome: novoForm.nome.trim(),
+      ra: novoForm.ra.trim(),
+      id,
+      ativo: isAtivo(novoForm.situacao),
+    };
+    setAlunos((prev) => [novo, ...prev]);
+    setNovoAberto(false);
+    setNovoForm(NOVO_ALUNO_VAZIO);
+    showFlash(id, "Aluno cadastrado");
+  }
+
   function resetarSenha(id: string) {
     // TODO: persistir no banco (Fase 2)
     showFlash(id, "Senha redefinida");
@@ -109,11 +162,20 @@ export default function GestaoAlunosPage() {
         Gestão
       </Link>
 
-      <div>
-        <h1 className="text-xl font-semibold text-gray-900">Gestão de Alunos</h1>
-        <p className="mt-0.5 text-sm text-[#4B5563]">
-          {alunos.length} alunos cadastrados · edite dados, redefina senha e ative/inative o acesso
-        </p>
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div>
+          <h1 className="text-xl font-semibold text-gray-900">Gestão de Alunos</h1>
+          <p className="mt-0.5 text-sm text-[#4B5563]">
+            {alunos.length} alunos cadastrados · edite dados, redefina senha e ative/inative o acesso
+          </p>
+        </div>
+        <button
+          onClick={abrirCadastro}
+          className="inline-flex items-center gap-1.5 rounded bg-[#009640] px-5 py-2 text-xs font-bold text-white transition hover:bg-[#007A33]"
+        >
+          <Plus size={15} />
+          Cadastrar aluno
+        </button>
       </div>
 
       {/* Busca */}
@@ -302,6 +364,122 @@ export default function GestaoAlunosPage() {
                 className="rounded bg-[#009640] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#007A33]"
               >
                 Salvar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal de cadastro */}
+      {novoAberto && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-lg border border-[#E5E7EB] bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-3.5">
+              <h2 className="text-sm font-bold text-gray-900">Cadastrar aluno</h2>
+              <button
+                onClick={() => setNovoAberto(false)}
+                className="text-[#9CA3AF] transition hover:text-gray-700"
+                aria-label="Fechar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3 p-5">
+              <Field label="Nome">
+                <input
+                  value={novoForm.nome}
+                  onChange={(e) => setNovoForm({ ...novoForm, nome: e.target.value })}
+                  placeholder="Nome completo"
+                  className={inputCls}
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="RA">
+                  <input
+                    value={novoForm.ra}
+                    onChange={(e) => setNovoForm({ ...novoForm, ra: e.target.value })}
+                    placeholder="0000000"
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Cidade">
+                  <input
+                    value={novoForm.cidade}
+                    onChange={(e) => setNovoForm({ ...novoForm, cidade: e.target.value })}
+                    className={inputCls}
+                  />
+                </Field>
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Telefone">
+                  <input
+                    value={novoForm.telefone}
+                    onChange={(e) => setNovoForm({ ...novoForm, telefone: e.target.value })}
+                    className={inputCls}
+                  />
+                </Field>
+                <Field label="Turma">
+                  <select
+                    value={novoForm.turmaNome}
+                    onChange={(e) => setNovoForm({ ...novoForm, turmaNome: e.target.value })}
+                    className={inputCls}
+                  >
+                    {TURMAS_DISPONIVEIS.map((t) => (
+                      <option key={t} value={t}>{t}</option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+              <Field label="E-mail">
+                <input
+                  type="email"
+                  value={novoForm.email}
+                  onChange={(e) => setNovoForm({ ...novoForm, email: e.target.value })}
+                  className={inputCls}
+                />
+              </Field>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Etapa">
+                  <select
+                    value={novoForm.etapa}
+                    onChange={(e) => setNovoForm({ ...novoForm, etapa: e.target.value as EtapaAluno })}
+                    className={inputCls}
+                  >
+                    <option value="AVA">AVA — Ambiente Virtual de Aprendizagem</option>
+                    <option value="RDS">RDS — Reconhecimento de Saberes</option>
+                  </select>
+                </Field>
+                <Field label="Situação">
+                  <select
+                    value={novoForm.situacao}
+                    onChange={(e) => setNovoForm({ ...novoForm, situacao: e.target.value as SituacaoAluno })}
+                    className={inputCls}
+                  >
+                    {SITUACOES.map((s) => (
+                      <option key={s} value={s}>{SITUACAO_CFG[s].label}</option>
+                    ))}
+                  </select>
+                </Field>
+              </div>
+
+              {erroNovo && (
+                <p className="text-xs font-semibold text-red-600">{erroNovo}</p>
+              )}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-[#E5E7EB] px-5 py-3.5">
+              <button
+                onClick={() => setNovoAberto(false)}
+                className="rounded border border-[#D9D9D9] px-4 py-2 text-sm font-semibold text-[#4B5563] transition hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarCadastro}
+                className="rounded bg-[#009640] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#007A33]"
+              >
+                Cadastrar
               </button>
             </div>
           </div>

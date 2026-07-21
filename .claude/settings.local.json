@@ -39,7 +39,14 @@
       "PowerShell(npx tsc --noEmit)",
       "Bash(git commit -m 'feat: coordenação com menu horizontal padronizado + gestão de alunos *)",
       "PowerShell(npx tsc --noEmit; if \\($?\\) { \"TSC OK\" })",
-      "Bash(git commit -m 'feat: telas de Meu Perfil, Alterar Senha e Configurações no menu de perfil *)"
+      "Bash(git commit -m 'feat: telas de Meu Perfil, Alterar Senha e Configurações no menu de perfil *)",
+      "PowerShell(npm install *)",
+      "PowerShell(npx prisma generate)",
+      "PowerShell(npx prisma migrate dev --name init)",
+      "PowerShell(Test-NetConnection *)",
+      "Bash(python -)",
+      "PowerShell(npx prisma migrate status)",
+      "Bash(git check-ignore *)"
     ]
   }
 }

@@ -1,10 +1,10 @@
 generator client {
   provider = "prisma-client-js"
 }
-
 datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_URL")
 }
 
 enum Role {
@@ -12,13 +12,209 @@ enum Role {
   PROFESSOR
   COORDENACAO
 }
+enum SituacaoAluno {
+  EM_PROCESSO
+  CURSANDO
+  APROVADO
+  RDS
+  EVADIDO
+  DESISTENTE
+  INATIVO
+}
+enum EtapaAluno {
+  AVA
+  RDS
+}
+enum StatusTurma {
+  EM_ANDAMENTO
+  ENCERRADA
+}
+enum StatusSolicitacao {
+  RECEBIDA
+  EM_ANALISE
+  EM_PROCESSAMENTO
+  CONCLUIDA
+}
+enum TipoDocumento {
+  DECLARACAO_MATRICULA
+  DECLARACAO_FREQUENCIA
+  HISTORICO_ESCOLAR
+  CERTIFICADO
+  OUTROS
+}
 
 model User {
-  id           String   @id @default(cuid())
+  id           String     @id @default(cuid())
   name         String
-  email        String   @unique
+  email        String     @unique
   passwordHash String
   role         Role
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+  aluno        Aluno?
+  professor    Professor?
+}
+model Polo {
+  id          String      @id @default(cuid())
+  nome        String      @unique
+  turmas      Turma[]
+  professores Professor[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+}
+model Turma {
+  id          String           @id @default(cuid())
+  nome        String
+  ano         Int?
+  etapaEnsino String?
+  status      StatusTurma      @default(EM_ANDAMENTO)
+  poloId      String
+  polo        Polo             @relation(fields: [poloId], references: [id])
+  alunos      Aluno[]
+  professores TurmaProfessor[]
+  aulas       AulaGravada[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  @@index([poloId])
+}
+model Area {
+  id           String        @id @default(cuid())
+  slug         String        @unique
+  nome         String
+  temNotas     Boolean       @default(true)
+  ordem        Int           @default(0)
+  competencias Competencia[]
+  professores  Professor[]
+  frequencias  Frequencia[]
+  aulas        AulaGravada[]
+}
+model Competencia {
+  id          String @id @default(cuid())
+  codigo      String
+  ordem       Int    @default(0)
+  habilidades Int    @default(0)
+  areaId      String
+  area        Area   @relation(fields: [areaId], references: [id])
+  notas       Nota[]
+  @@unique([areaId, codigo])
+}
+model Aluno {
+  id                  String        @id @default(cuid())
+  nome                String
+  ra                  String?       @unique
+  cidade              String?
+  telefone            String?
+  cep                 String?
+  nomePai             String?
+  nomeMae             String?
+  escolaridade        String?
+  situacao            SituacaoAluno @default(CURSANDO)
+  etapa               EtapaAluno    @default(AVA)
+  ativo               Boolean       @default(true)
+  dataMatricula       DateTime?
+  dataConclusao       DateTime?
+  historicoEntregue   Boolean       @default(false)
+  certificadoEmitido  Boolean       @default(false)
+  certificadoRecebido Boolean       @default(false)
+  userId              String?       @unique
+  user                User?         @relation(fields: [userId], references: [id])
+  turmaId             String?
+  turma               Turma?        @relation(fields: [turmaId], references: [id])
+  notas               Nota[]
+  frequencias         Frequencia[]
+  solicitacoes        Solicitacao[]
+  observacoes         Observacao[]
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+  @@index([turmaId])
+}
+model Professor {
+  id          String           @id @default(cuid())
+  nome        String
+  areaId      String?
+  area        Area?            @relation(fields: [areaId], references: [id])
+  poloId      String?
+  polo        Polo?            @relation(fields: [poloId], references: [id])
+  userId      String?          @unique
+  user        User?            @relation(fields: [userId], references: [id])
+  turmas      TurmaProfessor[]
+  aulas       AulaGravada[]
+  observacoes Observacao[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+model TurmaProfessor {
+  turmaId     String
+  turma       Turma     @relation(fields: [turmaId], references: [id])
+  professorId String
+  professor   Professor @relation(fields: [professorId], references: [id])
+  @@id([turmaId, professorId])
+  @@index([professorId])
+}
+model Nota {
+  id            String      @id @default(cuid())
+  certificacao  Int?
+  presenca      Int?
+  diagnostica   Int?
+  avaliativa    Int?
+  voceAutor     Int?
+  alunoId       String
+  aluno         Aluno       @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  competenciaId String
+  competencia   Competencia @relation(fields: [competenciaId], references: [id])
+  updatedAt     DateTime    @updatedAt
+  @@unique([alunoId, competenciaId])
+  @@index([alunoId])
+}
+model Frequencia {
+  id         String   @id @default(cuid())
+  totalAulas Int      @default(0)
+  presencas  Int      @default(0)
+  alunoId    String
+  aluno      Aluno    @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  areaId     String
+  area       Area     @relation(fields: [areaId], references: [id])
+  updatedAt  DateTime @updatedAt
+  @@unique([alunoId, areaId])
+  @@index([alunoId])
+}
+model AulaGravada {
+  id            String     @id @default(cuid())
+  titulo        String
+  data          DateTime
+  youtubeUrl    String
+  formularioUrl String?
+  areaId        String
+  area          Area       @relation(fields: [areaId], references: [id])
+  professorId   String?
+  professor     Professor? @relation(fields: [professorId], references: [id])
+  turmaId       String?
+  turma         Turma?     @relation(fields: [turmaId], references: [id])
+  createdAt     DateTime   @default(now())
+  updatedAt     DateTime   @updatedAt
+  @@index([areaId])
+  @@index([turmaId])
+}
+model Observacao {
+  id          String     @id @default(cuid())
+  texto       String
+  data        DateTime   @default(now())
+  alunoId     String
+  aluno       Aluno      @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  professorId String?
+  professor   Professor? @relation(fields: [professorId], references: [id])
+  createdAt   DateTime   @default(now())
+  @@index([alunoId])
+}
+model Solicitacao {
+  id         String            @id @default(cuid())
+  tipo       TipoDocumento
+  tipoOutros String?
+  status     StatusSolicitacao @default(RECEBIDA)
+  alunoId    String
+  aluno      Aluno             @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  createdAt  DateTime          @default(now())
+  updatedAt  DateTime          @updatedAt
+  @@index([alunoId])
+  @@index([status])
 }
