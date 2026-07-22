@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { Prisma } from "@prisma/client";
 import { CAMPOS_VAZIOS, type CamposCompetencia } from "@/lib/regras-notas";
 import {
   AREA_CONFIG_ORDER,
@@ -6,6 +7,8 @@ import {
   type AreaConfigId,
 } from "@/lib/competencias-config";
 import type { NotasGrade } from "@/lib/mock-data/professor";
+
+export type ResultadoAcao = { ok: boolean; message: string };
 
 // Mapa: id de área da grade (config) ↔ slug da Area no banco.
 const AREA_ID_TO_SLUG: Record<AreaConfigId, string> = {
@@ -173,4 +176,76 @@ export async function carregarNotasGradeTurma(turmaId: string): Promise<{
   }
 
   return { notasPorAluno, totais };
+}
+
+// ── GRAVAÇÃO (Etapa C): salva as notas de UMA área da turma ─────────────────
+// Recebe, por aluno, os 5 campos de cada competência da área. Faz upsert por
+// (alunoId, competenciaId); competência totalmente vazia é REMOVIDA (não cria linha vazia).
+// Segurança: professor precisa estar vinculado à turma e à própria área; coordenação libera.
+export async function salvarNotasDaArea(
+  turmaId: string,
+  areaConfigId: AreaConfigId,
+  notasPorAluno: Record<string, Record<string, CamposCompetencia>>,
+  userId: string | undefined,
+  isCoordenacao: boolean,
+): Promise<ResultadoAcao> {
+  if (!userId) return { ok: false, message: "Sessão expirada. Faça login novamente." };
+
+  const areaSlug = AREA_ID_TO_SLUG[areaConfigId];
+  if (!areaSlug) return { ok: false, message: "Área inválida." };
+
+  const turma = await prisma.turma.findUnique({
+    where: { id: turmaId },
+    select: { professores: { select: { professorId: true } } },
+  });
+  if (!turma) return { ok: false, message: "Turma não encontrada." };
+
+  if (!isCoordenacao) {
+    const professor = await prisma.professor.findUnique({
+      where: { userId },
+      select: { id: true, area: { select: { slug: true } } },
+    });
+    const vinculado = !!professor && turma.professores.some((tp) => tp.professorId === professor.id);
+    if (!vinculado) return { ok: false, message: "Você não está vinculado a esta turma." };
+    if (professor?.area?.slug !== areaSlug) {
+      return { ok: false, message: "Você só pode lançar notas da sua área." };
+    }
+  }
+
+  // Competências da área (codigo → id) e alunos válidos da turma (não arquivados).
+  const [competencias, alunosTurma] = await Promise.all([
+    prisma.competencia.findMany({ where: { area: { slug: areaSlug } }, select: { id: true, codigo: true } }),
+    prisma.aluno.findMany({ where: { turmaId, arquivado: false }, select: { id: true } }),
+  ]);
+  const idPorCodigo = new Map(competencias.map((c) => [c.codigo, c.id]));
+  const alunoIdsValidos = new Set(alunosTurma.map((a) => a.id));
+
+  const ops: Prisma.PrismaPromise<unknown>[] = [];
+  for (const [alunoId, porComp] of Object.entries(notasPorAluno)) {
+    if (!alunoIdsValidos.has(alunoId)) continue; // ignora alunos fora da turma (segurança)
+    for (const [codigo, campos] of Object.entries(porComp)) {
+      const competenciaId = idPorCodigo.get(codigo);
+      if (!competenciaId) continue;
+      const vazio =
+        campos.certificacao == null &&
+        campos.presenca == null &&
+        campos.diagnostica == null &&
+        campos.avaliativa == null &&
+        campos.voceAutor == null;
+      if (vazio) {
+        ops.push(prisma.nota.deleteMany({ where: { alunoId, competenciaId } }));
+      } else {
+        ops.push(
+          prisma.nota.upsert({
+            where: { alunoId_competenciaId: { alunoId, competenciaId } },
+            update: { ...campos },
+            create: { alunoId, competenciaId, ...campos },
+          }),
+        );
+      }
+    }
+  }
+
+  if (ops.length > 0) await prisma.$transaction(ops);
+  return { ok: true, message: "Notas salvas no banco." };
 }

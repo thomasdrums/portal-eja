@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import { useSession } from "next-auth/react";
 import { Search, Lock, Info, Save, Eye } from "lucide-react";
 import {
@@ -28,6 +28,7 @@ import {
   type SituacaoCompetencia,
 } from "@/lib/regras-notas";
 import type { TotaisMap } from "@/lib/queries/notas";
+import { salvarNotasAction } from "@/lib/actions/notas";
 
 // ── Geometria das colunas congeladas (à esquerda) ────────────
 const RA_W = 92;
@@ -131,6 +132,8 @@ export function GradeNotas({
 
   const [busca, setBusca] = useState("");
   const [salvoMsg, setSalvoMsg] = useState("");
+  const [salvoOk, setSalvoOk] = useState(true);
+  const [isSaving, startSaving] = useTransition();
 
   const alunosFiltrados = useMemo(() => {
     const termo = busca.trim().toLowerCase();
@@ -168,11 +171,17 @@ export function GradeNotas({
   }
 
   function handleSalvar() {
-    // TODO: persistir no banco (Fase 2)
-    setSalvoMsg(
-      "Notas salvas localmente — ainda não persistem após recarregar (em breve, com o banco de dados).",
-    );
-    setTimeout(() => setSalvoMsg(""), 4000);
+    if (!areaEditavel) return;
+    // Monta o payload da área editável: por aluno da turma, os campos de cada competência.
+    const payload: Record<string, Record<string, CamposCompetencia>> = {};
+    for (const a of turma.alunos) payload[a.id] = grade[a.id][notaArea];
+
+    startSaving(async () => {
+      const res = await salvarNotasAction(turma.id, notaArea, payload);
+      setSalvoOk(res.ok);
+      setSalvoMsg(res.message);
+      if (res.ok) setTimeout(() => setSalvoMsg(""), 4000);
+    });
   }
 
   return (
@@ -254,11 +263,11 @@ export function GradeNotas({
         <VisaoGeral alunos={alunosFiltrados} grade={grade} totais={totais} />
       ) : (
         <>
-          {/* Aviso de não-persistência */}
-          {!readOnly && (
+          {/* Aviso de persistência */}
+          {!readOnly && areaEditavel && (
             <div className="flex items-start gap-2 rounded-lg border border-[#D9D9D9] bg-[#F9FAFB] px-4 py-2.5 text-xs text-[#4B5563]">
               <Info size={14} className="mt-0.5 shrink-0 text-[#9CA3AF]" />
-              As notas ainda não são salvas permanentemente (em breve, com o banco de dados).
+              As notas são salvas no banco ao clicar em <strong>Salvar notas</strong>.
             </div>
           )}
 
@@ -433,17 +442,19 @@ export function GradeNotas({
           {!readOnly && (
             <div className="flex flex-wrap items-center justify-between gap-3">
               {salvoMsg ? (
-                <p className="text-xs font-medium text-[#007A33]">✓ {salvoMsg}</p>
+                <p className={`text-xs font-medium ${salvoOk ? "text-[#007A33]" : "text-red-600"}`}>
+                  {salvoOk ? "✓ " : ""}{salvoMsg}
+                </p>
               ) : (
                 <span />
               )}
               <button
                 onClick={handleSalvar}
-                disabled={!areaEditavel}
+                disabled={!areaEditavel || isSaving}
                 className="flex items-center gap-2 rounded bg-[#009640] px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-[#007A33] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 <Save size={15} />
-                Salvar notas
+                {isSaving ? "Salvando…" : "Salvar notas"}
               </button>
             </div>
           )}
