@@ -19,6 +19,9 @@ const AREAS = [
   { slug: "interarea", nome: "Interárea", temNotas: false, ordem: 5 },
 ] as const;
 
+// Polos (upsert por nome, que é único).
+const POLOS = ["Caruaru", "Recife"] as const;
+
 // Mapeia a chave do competencias-config.ts para o slug da tabela Area.
 const CONFIG_TO_SLUG: Record<AreaConfigId, string> = {
   matematica: "matematica",
@@ -45,6 +48,11 @@ async function main() {
       create: { slug: a.slug, nome: a.nome, temNotas: a.temNotas, ordem: a.ordem },
     });
     areaIdBySlug[a.slug] = area.id;
+  }
+
+  // 1b) Polos (upsert por nome único).
+  for (const nome of POLOS) {
+    await prisma.polo.upsert({ where: { nome }, update: {}, create: { nome } });
   }
 
   // 2) Competências (habilidades vindas de COMPETENCIAS_CONFIG). Interárea não tem competências.
@@ -103,8 +111,9 @@ async function main() {
   });
 
   // 4) Resumo
-  const [areas, competencias, users, alunos, professores] = await Promise.all([
+  const [areas, polos, competencias, users, alunos, professores] = await Promise.all([
     prisma.area.count(),
+    prisma.polo.count(),
     prisma.competencia.count(),
     prisma.user.count(),
     prisma.aluno.count(),
@@ -112,6 +121,7 @@ async function main() {
   ]);
   console.log("Seed concluído (idempotente).");
   console.log(`  Áreas:        ${areas}`);
+  console.log(`  Polos:        ${polos}`);
   console.log(`  Competências: ${competencias} (esperado 17: 5+4+4+4)`);
   console.log(`  Usuários:     ${users}`);
   console.log(`  Alunos:       ${alunos}`);

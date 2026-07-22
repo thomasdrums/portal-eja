@@ -131,6 +131,9 @@ model Aluno {
 model Professor {
   id          String           @id @default(cuid())
   nome        String
+  cpf         String?
+  telefone    String?
+  ativo       Boolean          @default(true)
   areaId      String?
   area        Area?            @relation(fields: [areaId], references: [id])
   poloId      String?
