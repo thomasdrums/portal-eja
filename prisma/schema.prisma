@@ -34,6 +34,7 @@ enum StatusSolicitacao {
   EM_ANALISE
   EM_PROCESSAMENTO
   CONCLUIDA
+  CANCELADA
 }
 enum TipoDocumento {
   DECLARACAO_MATRICULA
@@ -217,6 +218,7 @@ model Observacao {
 }
 model Solicitacao {
   id         String            @id @default(cuid())
+  protocolo  String?           @unique
   tipo       TipoDocumento
   tipoOutros String?
   status     StatusSolicitacao @default(RECEBIDA)

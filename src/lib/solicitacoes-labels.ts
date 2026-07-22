@@ -22,8 +22,11 @@ export const STATUS_LABEL: Record<StatusSolicitacao, string> = {
   EM_ANALISE: "Em análise",
   EM_PROCESSAMENTO: "Em processamento",
   CONCLUIDA: "Concluída",
+  CANCELADA: "Cancelada",
 };
 
+// Ordem do FLUXO de atendimento (filtros/contadores/seletor da coordenação).
+// CANCELADA não entra aqui: é um estado final acionado pelo aluno.
 export const STATUSES: StatusSolicitacao[] = [
   "RECEBIDA",
   "EM_ANALISE",
@@ -36,4 +39,5 @@ export const STATUS_COR: Record<StatusSolicitacao, string> = {
   EM_ANALISE: "bg-[#EAF6EE] text-[#007A33]",
   EM_PROCESSAMENTO: "bg-amber-50 text-amber-700",
   CONCLUIDA: "bg-green-100 text-green-700",
+  CANCELADA: "bg-red-50 text-red-600",
 };

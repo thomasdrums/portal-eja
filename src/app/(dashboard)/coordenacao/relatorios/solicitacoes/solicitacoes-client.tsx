@@ -35,23 +35,29 @@ export default function RelatorioSolicitacoesClient({
   const [turma, setTurma] = useState("");
   const [status, setStatus] = useState("");
   const [tipo, setTipo] = useState("");
+  const [buscaProtocolo, setBuscaProtocolo] = useState("");
 
   // Opções de filtro derivadas dos dados reais.
   const POLOS = useMemo(() => [...new Set(lista.map((s) => s.polo))].filter(Boolean).sort(), [lista]);
   const TURMAS = useMemo(() => [...new Set(lista.map((s) => s.turmaNome))].filter(Boolean).sort(), [lista]);
   const TIPOS = useMemo(() => [...new Set(lista.map((s) => s.tipoLabel))].sort(), [lista]);
 
-  const filtered = useMemo(
-    () =>
-      lista.filter(
-        (s) =>
-          (!polo || s.polo === polo) &&
-          (!turma || s.turmaNome === turma) &&
-          (!status || STATUS_LABEL[s.status] === status) &&
-          (!tipo || s.tipoLabel === tipo),
-      ),
-    [lista, polo, turma, status, tipo],
-  );
+  const filtered = useMemo(() => {
+    const q = buscaProtocolo.trim().toLowerCase();
+    return lista.filter((s) => {
+      const protoOk = !q || s.protocolo.toLowerCase().includes(q);
+      // Canceladas somem das pendências ativas, mas continuam acháveis por protocolo.
+      const canceladaOk = s.status !== "CANCELADA" || q !== "";
+      return (
+        (!polo || s.polo === polo) &&
+        (!turma || s.turmaNome === turma) &&
+        (!status || STATUS_LABEL[s.status] === status) &&
+        (!tipo || s.tipoLabel === tipo) &&
+        protoOk &&
+        canceladaOk
+      );
+    });
+  }, [lista, polo, turma, status, tipo, buscaProtocolo]);
 
   const contadores = STATUSES.map((st) => ({
     status: st,
@@ -94,18 +100,36 @@ export default function RelatorioSolicitacoesClient({
         ))}
       </div>
 
-      <div className="grid grid-cols-2 gap-3 rounded-lg border border-[#E5E7EB] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)] sm:grid-cols-4">
-        <Select label="Polo" value={polo} onChange={setPolo} options={POLOS} />
-        <Select label="Turma" value={turma} onChange={setTurma} options={TURMAS} />
-        <Select label="Status" value={status} onChange={setStatus} options={STATUSES.map((st) => STATUS_LABEL[st])} />
-        <Select label="Tipo" value={tipo} onChange={setTipo} options={TIPOS} />
+      <div className="space-y-3 rounded-lg border border-[#E5E7EB] bg-white p-4 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+        <div>
+          <label className="mb-1 block text-xs font-semibold uppercase tracking-wide text-[#4B5563]">
+            Buscar por protocolo
+          </label>
+          <input
+            type="text"
+            value={buscaProtocolo}
+            onChange={(e) => setBuscaProtocolo(e.target.value)}
+            placeholder="Ex.: 2026-000123"
+            className="w-full rounded border border-[#D9D9D9] bg-white px-3 py-2.5 text-sm text-gray-800 outline-none focus:border-[#009640] focus:ring-2 focus:ring-[#009640]/20 sm:max-w-xs"
+          />
+          <p className="mt-1 text-[11px] text-[#9CA3AF]">
+            A busca por protocolo também localiza solicitações canceladas (que ficam fora das pendências).
+          </p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+          <Select label="Polo" value={polo} onChange={setPolo} options={POLOS} />
+          <Select label="Turma" value={turma} onChange={setTurma} options={TURMAS} />
+          <Select label="Status" value={status} onChange={setStatus} options={STATUSES.map((st) => STATUS_LABEL[st])} />
+          <Select label="Tipo" value={tipo} onChange={setTipo} options={TIPOS} />
+        </div>
       </div>
 
       <div className="overflow-x-auto rounded-lg border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
         <table className="w-full text-sm">
           <thead>
             <tr className="bg-[#009640] text-left text-xs font-semibold uppercase tracking-wide text-white">
-              <th className="px-5 py-3">Aluno</th>
+              <th className="px-5 py-3">Protocolo</th>
+              <th className="px-3 py-3">Aluno</th>
               <th className="px-3 py-3">Tipo</th>
               <th className="px-3 py-3">Polo</th>
               <th className="px-3 py-3">Turma</th>
@@ -116,29 +140,36 @@ export default function RelatorioSolicitacoesClient({
           <tbody className="divide-y divide-[#E5E7EB]">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={6} className="py-10 text-center text-sm text-[#4B5563]">
+                <td colSpan={7} className="py-10 text-center text-sm text-[#4B5563]">
                   Nenhuma solicitação encontrada.
                 </td>
               </tr>
             ) : (
               filtered.map((s) => (
                 <tr key={s.id} className="hover:bg-[#F8FAFC]">
-                  <td className="px-5 py-3 font-semibold text-gray-800">{s.nomeAluno}</td>
+                  <td className="px-5 py-3 font-mono text-[12px] text-[#4B5563]">{s.protocolo || "—"}</td>
+                  <td className="px-3 py-3 font-semibold text-gray-800">{s.nomeAluno}</td>
                   <td className="px-3 py-3 text-xs text-[#4B5563]">{s.tipoLabel}</td>
                   <td className="px-3 py-3 text-[#4B5563]">{s.polo}</td>
                   <td className="px-3 py-3 text-[#4B5563]">{s.turmaNome}</td>
                   <td className="px-3 py-3 text-[#4B5563]">{s.dataSolicitacao}</td>
                   <td className="px-3 py-3 text-center">
-                    <select
-                      value={s.status}
-                      disabled={isPending}
-                      onChange={(e) => atualizarStatus(s.id, e.target.value as StatusSolicitacao)}
-                      className={`w-full cursor-pointer rounded border-0 px-2.5 py-1 text-xs font-semibold outline-none disabled:opacity-50 ${STATUS_COR[s.status]}`}
-                    >
-                      {STATUSES.map((st) => (
-                        <option key={st} value={st}>{STATUS_LABEL[st]}</option>
-                      ))}
-                    </select>
+                    {s.status === "CANCELADA" ? (
+                      <span className={`inline-block rounded px-2.5 py-1 text-xs font-semibold ${STATUS_COR.CANCELADA}`}>
+                        {STATUS_LABEL.CANCELADA}
+                      </span>
+                    ) : (
+                      <select
+                        value={s.status}
+                        disabled={isPending}
+                        onChange={(e) => atualizarStatus(s.id, e.target.value as StatusSolicitacao)}
+                        className={`w-full cursor-pointer rounded border-0 px-2.5 py-1 text-xs font-semibold outline-none disabled:opacity-50 ${STATUS_COR[s.status]}`}
+                      >
+                        {STATUSES.map((st) => (
+                          <option key={st} value={st}>{STATUS_LABEL[st]}</option>
+                        ))}
+                      </select>
+                    )}
                   </td>
                 </tr>
               ))
