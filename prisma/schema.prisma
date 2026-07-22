@@ -217,11 +217,12 @@ model Observacao {
   @@index([alunoId])
 }
 model Solicitacao {
-  id         String            @id @default(cuid())
-  protocolo  String?           @unique
-  tipo       TipoDocumento
-  tipoOutros String?
-  status     StatusSolicitacao @default(RECEBIDA)
+  id            String            @id @default(cuid())
+  protocolo     String?           @unique
+  tipo          TipoDocumento
+  tipoOutros    String?
+  linkDocumento String?
+  status        StatusSolicitacao @default(RECEBIDA)
   alunoId    String
   aluno      Aluno             @relation(fields: [alunoId], references: [id], onDelete: Cascade)
   createdAt  DateTime          @default(now())

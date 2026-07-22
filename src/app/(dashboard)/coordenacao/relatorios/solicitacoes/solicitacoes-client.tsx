@@ -3,11 +3,11 @@
 import { useState, useMemo, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, ExternalLink } from "lucide-react";
 import type { StatusSolicitacao } from "@prisma/client";
 import type { SolicitacaoCoordRow } from "@/lib/queries/solicitacoes";
 import { STATUSES, STATUS_LABEL, STATUS_COR } from "@/lib/solicitacoes-labels";
-import { atualizarStatusAction } from "./actions";
+import { atualizarStatusAction, definirLinkDocumentoAction } from "./actions";
 
 function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
@@ -36,6 +36,10 @@ export default function RelatorioSolicitacoesClient({
   const [status, setStatus] = useState("");
   const [tipo, setTipo] = useState("");
   const [buscaProtocolo, setBuscaProtocolo] = useState("");
+
+  // Rascunho do link por linha e aviso de salvamento por linha.
+  const [linkDraft, setLinkDraft] = useState<Record<string, string>>({});
+  const [linkFlash, setLinkFlash] = useState<Record<string, { msg: string; ok: boolean }>>({});
 
   // Opções de filtro derivadas dos dados reais.
   const POLOS = useMemo(() => [...new Set(lista.map((s) => s.polo))].filter(Boolean).sort(), [lista]);
@@ -69,6 +73,23 @@ export default function RelatorioSolicitacoesClient({
     startTransition(async () => {
       const res = await atualizarStatusAction(id, novoStatus);
       if (res.ok) router.refresh();
+    });
+  }
+
+  // Link atual do campo: rascunho editado, senão o valor vindo do banco.
+  function linkAtual(s: SolicitacaoCoordRow): string {
+    return linkDraft[s.id] ?? s.linkDocumento;
+  }
+
+  function salvarLink(s: SolicitacaoCoordRow) {
+    const url = linkAtual(s);
+    startTransition(async () => {
+      const res = await definirLinkDocumentoAction(s.id, url);
+      setLinkFlash((f) => ({ ...f, [s.id]: { msg: res.message, ok: res.ok } }));
+      if (res.ok) {
+        setTimeout(() => setLinkFlash((f) => ({ ...f, [s.id]: { msg: "", ok: true } })), 3000);
+        router.refresh();
+      }
     });
   }
 
@@ -124,6 +145,11 @@ export default function RelatorioSolicitacoesClient({
         </div>
       </div>
 
+      <p className="text-[11px] text-[#6B7280]">
+        <span className="font-semibold">Documento (link):</span> o acesso é controlado pela permissão do
+        próprio link no Drive/OneDrive. Use links restritos/compartilhados, não públicos.
+      </p>
+
       <div className="overflow-x-auto rounded-lg border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
         <table className="w-full text-sm">
           <thead>
@@ -135,12 +161,13 @@ export default function RelatorioSolicitacoesClient({
               <th className="px-3 py-3">Turma</th>
               <th className="px-3 py-3">Data</th>
               <th className="px-3 py-3 text-center">Status</th>
+              <th className="px-3 py-3">Documento</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-[#E5E7EB]">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={7} className="py-10 text-center text-sm text-[#4B5563]">
+                <td colSpan={8} className="py-10 text-center text-sm text-[#4B5563]">
                   Nenhuma solicitação encontrada.
                 </td>
               </tr>
@@ -169,6 +196,57 @@ export default function RelatorioSolicitacoesClient({
                           <option key={st} value={st}>{STATUS_LABEL[st]}</option>
                         ))}
                       </select>
+                    )}
+                  </td>
+                  <td className="px-3 py-3">
+                    {s.status === "CANCELADA" ? (
+                      <span className="text-[11px] text-[#9CA3AF]">—</span>
+                    ) : (
+                      <div className="space-y-1.5">
+                        <div className="flex items-center gap-1.5">
+                          <input
+                            type="url"
+                            value={linkAtual(s)}
+                            onChange={(e) => setLinkDraft((d) => ({ ...d, [s.id]: e.target.value }))}
+                            placeholder="https://drive.google.com/…"
+                            className="w-48 rounded border border-[#D9D9D9] px-2 py-1 text-xs text-gray-800 outline-none focus:border-[#009640] focus:ring-2 focus:ring-[#009640]/20"
+                          />
+                          <button
+                            onClick={() => salvarLink(s)}
+                            disabled={isPending}
+                            className="rounded bg-[#009640] px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-[#007A33] disabled:opacity-50"
+                          >
+                            Salvar
+                          </button>
+                        </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                          {s.linkDocumento && (
+                            <a
+                              href={s.linkDocumento}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#009640] hover:underline"
+                            >
+                              <ExternalLink size={11} />
+                              Abrir
+                            </a>
+                          )}
+                          {s.status !== "CONCLUIDA" && (
+                            <button
+                              onClick={() => atualizarStatus(s.id, "CONCLUIDA")}
+                              disabled={isPending}
+                              className="text-[11px] font-semibold text-[#4B5563] hover:underline disabled:opacity-50"
+                            >
+                              Marcar concluída
+                            </button>
+                          )}
+                          {linkFlash[s.id]?.msg && (
+                            <span className={`text-[11px] font-semibold ${linkFlash[s.id].ok ? "text-[#007A33]" : "text-red-600"}`}>
+                              {linkFlash[s.id].msg}
+                            </span>
+                          )}
+                        </div>
+                      </div>
                     )}
                   </td>
                 </tr>

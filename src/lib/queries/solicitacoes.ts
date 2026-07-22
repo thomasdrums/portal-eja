@@ -18,6 +18,7 @@ export type SolicitacaoCoordRow = {
   turmaNome: string;
   dataSolicitacao: string;
   status: StatusSolicitacao;
+  linkDocumento: string;
 };
 
 // Linha da tela do aluno ("minhas solicitações").
@@ -27,6 +28,7 @@ export type SolicitacaoAlunoRow = {
   tipoLabel: string;
   dataHora: string;
   status: StatusSolicitacao;
+  linkDocumento: string;
 };
 
 function fmtData(d: Date): string {
@@ -96,6 +98,7 @@ export async function listarSolicitacoes(): Promise<SolicitacaoCoordRow[]> {
     turmaNome: s.aluno.turma?.nome ?? "—",
     dataSolicitacao: fmtData(s.createdAt),
     status: s.status,
+    linkDocumento: s.linkDocumento ?? "",
   }));
 }
 
@@ -111,6 +114,7 @@ export async function listarSolicitacoesDoAluno(alunoId: string): Promise<Solici
     tipoLabel: rotuloTipo(s.tipo, s.tipoOutros),
     dataHora: fmtDataHora(s.createdAt),
     status: s.status,
+    linkDocumento: s.linkDocumento ?? "",
   }));
 }
 
@@ -206,6 +210,20 @@ export async function atualizarStatusSolicitacao(
 ): Promise<ResultadoAcao> {
   await prisma.solicitacao.update({ where: { id }, data: { status } });
   return { ok: true, message: "Status atualizado" };
+}
+
+// Secretaria anexa o LINK do documento pronto (Drive/OneDrive). Guardamos só o link (texto).
+// URL vazia limpa o link; caso contrário precisa começar com http:// ou https://.
+export async function definirLinkDocumento(id: string, url: string): Promise<ResultadoAcao> {
+  const link = url.trim();
+  if (link && !/^https?:\/\//i.test(link)) {
+    return { ok: false, message: "O link deve começar com http:// ou https://" };
+  }
+  await prisma.solicitacao.update({
+    where: { id },
+    data: { linkDocumento: link || null },
+  });
+  return { ok: true, message: link ? "Link do documento salvo." : "Link removido." };
 }
 
 // Resolve o Aluno vinculado ao usuário logado (via userId). Retorna null se não houver.

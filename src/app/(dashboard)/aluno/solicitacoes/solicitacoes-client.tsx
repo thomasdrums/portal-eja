@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, X, Ban } from "lucide-react";
+import { ChevronLeft, X, Ban, Download } from "lucide-react";
 import type { StatusSolicitacao, TipoDocumento } from "@prisma/client";
 import type { SolicitacaoAlunoRow } from "@/lib/queries/solicitacoes";
 import { TIPOS_DOCUMENTO, TIPO_LABEL, STATUS_LABEL, STATUS_COR } from "@/lib/solicitacoes-labels";
@@ -162,19 +162,34 @@ export default function SolicitacoesAlunoClient({
                       {STATUS_LABEL[sol.status]}
                     </span>
                   </td>
-                  <td className="px-5 py-3 text-center">
-                    {podeCancelar(sol.status) ? (
-                      <button
-                        onClick={() => { setErroCancel(""); setCancelAlvo(sol); }}
-                        disabled={isPending}
-                        className="inline-flex items-center gap-1 rounded border border-red-300 px-2.5 py-1 text-[11px] font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
-                      >
-                        <Ban size={12} />
-                        Cancelar
-                      </button>
-                    ) : (
-                      <span className="text-[11px] text-[#9CA3AF]">—</span>
-                    )}
+                  <td className="px-5 py-3">
+                    <div className="flex flex-wrap items-center justify-center gap-2">
+                      {sol.linkDocumento ? (
+                        <a
+                          href={sol.linkDocumento}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 rounded bg-[#009640] px-2.5 py-1 text-[11px] font-semibold text-white transition hover:bg-[#007A33]"
+                        >
+                          <Download size={12} />
+                          Baixar documento
+                        </a>
+                      ) : (
+                        sol.status !== "CANCELADA" && (
+                          <span className="text-[11px] text-[#9CA3AF]">Documento ainda não disponível</span>
+                        )
+                      )}
+                      {podeCancelar(sol.status) && (
+                        <button
+                          onClick={() => { setErroCancel(""); setCancelAlvo(sol); }}
+                          disabled={isPending}
+                          className="inline-flex items-center gap-1 rounded border border-red-300 px-2.5 py-1 text-[11px] font-semibold text-red-600 transition hover:bg-red-50 disabled:opacity-50"
+                        >
+                          <Ban size={12} />
+                          Cancelar
+                        </button>
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
