@@ -2,6 +2,7 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { carregarTurmaDoProfessor, type AcessoTurma } from "@/lib/queries/professor-turmas";
+import { carregarNotasGradeTurma } from "@/lib/queries/notas";
 import TurmaClient from "./turma-client";
 
 export const dynamic = "force-dynamic";
@@ -49,5 +50,16 @@ export default async function TurmaPage({
     return <AvisoAcesso tipo={acesso} />;
   }
 
-  return <TurmaClient turma={turma} />;
+  // Etapa B: lê as notas REAIS do banco e usa como estado inicial da grade.
+  // (O salvar continua local — Etapa C.)
+  const { notasPorAluno, totais } = await carregarNotasGradeTurma(turma.id);
+  const turmaComNotas = {
+    ...turma,
+    alunos: turma.alunos.map((a) => ({
+      ...a,
+      notasGrade: notasPorAluno[a.id] ?? a.notasGrade,
+    })),
+  };
+
+  return <TurmaClient turma={turmaComNotas} totais={totais} />;
 }

@@ -27,6 +27,7 @@ import {
   type CamposCompetencia,
   type SituacaoCompetencia,
 } from "@/lib/regras-notas";
+import type { TotaisMap } from "@/lib/queries/notas";
 
 // ── Geometria das colunas congeladas (à esquerda) ────────────
 const RA_W = 92;
@@ -90,14 +91,21 @@ function mediaInfo(campos: CamposCompetencia, total: number) {
 export function GradeNotas({
   turma,
   readOnly = false,
+  totais,
 }: {
   turma: Turma;
   // Modo somente leitura (Coordenação): vê todas as áreas, sem editar.
   readOnly?: boolean;
+  // Totais de habilidades por competência vindos do banco. Sem isso, cai no config.
+  totais?: TotaisMap;
 }) {
   const { data: session } = useSession();
   const role = session?.user?.role ?? "PROFESSOR";
   const disciplina = session?.user?.disciplina ?? null;
+
+  // Total de habilidades da competência: prioriza o banco (totais), com fallback ao config.
+  const getTotal = (area: AreaConfigId, comp: string): number =>
+    totais?.[area]?.[comp] ?? totalHabilidades(area, comp);
 
   // Em modo somente leitura nenhuma área é editável.
   const editableIds = readOnly ? [] : notasEditaveis(disciplina, role);
@@ -243,7 +251,7 @@ export function GradeNotas({
       </div>
 
       {isVisaoGeral ? (
-        <VisaoGeral alunos={alunosFiltrados} grade={grade} />
+        <VisaoGeral alunos={alunosFiltrados} grade={grade} totais={totais} />
       ) : (
         <>
           {/* Aviso de não-persistência */}
@@ -288,8 +296,8 @@ export function GradeNotas({
                       className="border-b border-l-2 border-l-[#007A33] border-b-[#007A33] bg-[#009640] px-2 py-1.5 text-center text-[11px] font-semibold text-white"
                       colSpan={CAMPOS.length + 1}
                     >
-                      {comp} · {totalHabilidades(notaArea, comp)} hab · cert ≥{" "}
-                      {minParaCertificar(totalHabilidades(notaArea, comp))}
+                      {comp} · {getTotal(notaArea, comp)} hab · cert ≥{" "}
+                      {minParaCertificar(getTotal(notaArea, comp))}
                     </th>
                   ))}
 
@@ -333,7 +341,7 @@ export function GradeNotas({
                     const sit = situacaoArea(
                       comps.map((comp) => ({
                         campos: notasAluno[comp],
-                        total: totalHabilidades(notaArea, comp),
+                        total: getTotal(notaArea, comp),
                       })),
                     );
                     const status = statusMap[aluno.id];
@@ -381,7 +389,7 @@ export function GradeNotas({
                         {/* Campos por competência */}
                         {comps.map((comp) => {
                           const campos = notasAluno[comp];
-                          const total = totalHabilidades(notaArea, comp);
+                          const total = getTotal(notaArea, comp);
                           const certificado =
                             campos.certificacao !== null && campos.certificacao > 0;
                           const media = mediaInfo(campos, total);
@@ -504,14 +512,20 @@ function CompCells({
 function VisaoGeral({
   alunos,
   grade,
+  totais,
 }: {
   alunos: Aluno[];
   grade: Record<string, NotasGrade>;
+  totais?: TotaisMap;
 }) {
   const totalComps = VG_AREAS.reduce(
     (s, g) => s + competenciasDaArea(g.area).length,
     0,
   );
+
+  // Total de habilidades: prioriza o banco (totais), com fallback ao config.
+  const getTotal = (area: AreaConfigId, comp: string): number =>
+    totais?.[area]?.[comp] ?? totalHabilidades(area, comp);
 
   return (
     <div className="space-y-3">
@@ -592,7 +606,7 @@ function VisaoGeral({
                     return compsArea.map((comp, i) => {
                       const sit = situacaoCompetencia(
                         grade[aluno.id][g.area][comp],
-                        totalHabilidades(g.area, comp),
+                        getTotal(g.area, comp),
                       );
                       return (
                         <SituacaoCell
