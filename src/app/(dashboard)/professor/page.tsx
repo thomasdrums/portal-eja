@@ -1,16 +1,22 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { CardStat } from "@/components/dashboard/CardStat";
-import { professorTurmas, isAtivo } from "@/lib/mock-data/professor";
+import { listarTurmasDoProfessor } from "@/lib/queries/professor-turmas";
 import { Users, ExternalLink } from "lucide-react";
+
+export const dynamic = "force-dynamic";
 
 export default async function ProfessorDashboardPage() {
   const session = await auth();
   const nome = session?.user?.name ?? "Professor";
+  const isCoordenacao = session?.user?.role === "COORDENACAO";
 
-  const todosAlunos = professorTurmas.flatMap((t) => t.alunos);
-  const totalAlunos = todosAlunos.length;
-  const ativos      = todosAlunos.filter((a) => isAtivo(a.situacao)).length;
+  // Turmas REAIS do professor logado (coordenação enxerga todas).
+  const turmas = await listarTurmasDoProfessor(session?.user?.id, isCoordenacao);
+
+  const totalTurmas = turmas.length;
+  const totalAlunos = turmas.reduce((s, t) => s + t.qtdAlunos, 0);
+  const alunosAtivos = turmas.reduce((s, t) => s + t.ativos, 0);
 
   return (
     <div className="mx-auto max-w-5xl space-y-8">
@@ -28,9 +34,9 @@ export default async function ProfessorDashboardPage() {
           Visão Geral
         </h2>
         <div className="grid gap-4 sm:grid-cols-3">
-          <CardStat label="Total de Turmas"  value={professorTurmas.length} />
+          <CardStat label="Total de Turmas"  value={totalTurmas} />
           <CardStat label="Total de Alunos"  value={totalAlunos} />
-          <CardStat label="Alunos Ativos"    value={ativos} />
+          <CardStat label="Alunos Ativos"    value={alunosAtivos} />
         </div>
       </section>
 
@@ -47,42 +53,51 @@ export default async function ProfessorDashboardPage() {
           </Link>
         </div>
 
-        <div className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="bg-[#009640]">
-                <th className="px-5 py-3 text-left text-xs font-semibold text-white">Turma</th>
-                <th className="hidden px-5 py-3 text-center text-xs font-semibold text-white sm:table-cell">Etapa</th>
-                <th className="px-5 py-3 text-center text-xs font-semibold text-white">Total de Alunos</th>
-                <th className="px-5 py-3 text-center text-xs font-semibold text-white">Ação</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-[#E5E7EB]">
-              {professorTurmas.map((turma) => (
-                <tr key={turma.id} className="hover:bg-[#F8FAFC]">
-                  <td className="px-5 py-3">
-                    <div className="flex items-center gap-2">
-                      <Users size={15} className="shrink-0 text-[#009640]" />
-                      <span className="font-medium text-gray-800">{turma.nome}</span>
-                    </div>
-                  </td>
-                  <td className="hidden px-5 py-3 text-center text-[#4B5563] sm:table-cell">—</td>
-                  <td className="px-5 py-3 text-center font-semibold text-gray-800">
-                    {turma.alunos.length}
-                  </td>
-                  <td className="px-5 py-3 text-center">
-                    <Link
-                      href={`/professor/turmas/${turma.id}`}
-                      className="inline-flex items-center gap-1 rounded border border-[#009640] px-3 py-1.5 text-xs font-semibold text-[#009640] transition hover:bg-[#EAF6EE]"
-                    >
-                      Acessar
-                    </Link>
-                  </td>
+        {turmas.length === 0 ? (
+          <div className="rounded-lg border border-[#E5E7EB] bg-white p-8 text-center shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+            <Users size={22} className="mx-auto mb-2 text-[#9CA3AF]" />
+            <p className="text-sm text-[#4B5563]">
+              Você ainda não tem turmas vinculadas. Fale com a coordenação.
+            </p>
+          </div>
+        ) : (
+          <div className="overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="bg-[#009640]">
+                  <th className="px-5 py-3 text-left text-xs font-semibold text-white">Turma</th>
+                  <th className="hidden px-5 py-3 text-center text-xs font-semibold text-white sm:table-cell">Etapa</th>
+                  <th className="px-5 py-3 text-center text-xs font-semibold text-white">Total de Alunos</th>
+                  <th className="px-5 py-3 text-center text-xs font-semibold text-white">Ação</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+              </thead>
+              <tbody className="divide-y divide-[#E5E7EB]">
+                {turmas.map((turma) => (
+                  <tr key={turma.id} className="hover:bg-[#F8FAFC]">
+                    <td className="px-5 py-3">
+                      <div className="flex items-center gap-2">
+                        <Users size={15} className="shrink-0 text-[#009640]" />
+                        <span className="font-medium text-gray-800">{turma.nome}</span>
+                      </div>
+                    </td>
+                    <td className="hidden px-5 py-3 text-center text-[#4B5563] sm:table-cell">{turma.etapaEnsino}</td>
+                    <td className="px-5 py-3 text-center font-semibold text-gray-800">
+                      {turma.qtdAlunos}
+                    </td>
+                    <td className="px-5 py-3 text-center">
+                      <Link
+                        href={`/professor/turmas/${turma.id}`}
+                        className="inline-flex items-center gap-1 rounded border border-[#009640] px-3 py-1.5 text-xs font-semibold text-[#009640] transition hover:bg-[#EAF6EE]"
+                      >
+                        Acessar
+                      </Link>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
       </section>
     </div>
   );
