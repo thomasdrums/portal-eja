@@ -17,8 +17,19 @@ export type ProfessorRow = {
   poloId: string | null;
   poloNome: string;
   ativo: boolean; // persistido (coluna ativo)
+  arquivadoEm: string | null; // data/hora de arquivamento (só nos arquivados)
   turmasVinculadas: string[];
 };
+
+// Formata data/hora para exibição (dd/mm/aaaa hh:mm); null quando não há data.
+function fmtDataHora(d: Date | null): string | null {
+  if (!d) return null;
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()} ${hh}:${mi}`;
+}
 
 export type NovoProfessorInput = {
   nome: string;
@@ -33,9 +44,11 @@ export type NovoProfessorInput = {
 
 export type EdicaoProfessorInput = NovoProfessorInput;
 
-export async function listarProfessores(): Promise<ProfessorRow[]> {
+// Busca professores filtrando por arquivado (false = listas normais; true = arquivados).
+async function buscarProfessores(arquivado: boolean): Promise<ProfessorRow[]> {
   const professores = await prisma.professor.findMany({
-    orderBy: { nome: "asc" },
+    where: { arquivado },
+    orderBy: arquivado ? { arquivadoEm: "desc" } : { nome: "asc" },
     include: {
       user: { select: { email: true } },
       area: { select: { nome: true } },
@@ -55,8 +68,19 @@ export async function listarProfessores(): Promise<ProfessorRow[]> {
     poloId: p.poloId,
     poloNome: p.polo?.nome ?? "",
     ativo: p.ativo,
+    arquivadoEm: fmtDataHora(p.arquivadoEm),
     turmasVinculadas: p.turmas.map((tp) => tp.turma.nome),
   }));
+}
+
+// Lista padrão: apenas os NÃO arquivados.
+export async function listarProfessores(): Promise<ProfessorRow[]> {
+  return buscarProfessores(false);
+}
+
+// Lista de arquivados (soft delete), com a data de arquivamento.
+export async function listarProfessoresArquivados(): Promise<ProfessorRow[]> {
+  return buscarProfessores(true);
 }
 
 // ── Opções para os seletores (áreas, polos, professores, turmas) ──
@@ -69,7 +93,11 @@ export async function listarPolos(): Promise<Opcao[]> {
 }
 
 export async function listarProfessoresOpcoes(): Promise<Opcao[]> {
-  return prisma.professor.findMany({ orderBy: { nome: "asc" }, select: { id: true, nome: true } });
+  return prisma.professor.findMany({
+    where: { arquivado: false },
+    orderBy: { nome: "asc" },
+    select: { id: true, nome: true },
+  });
 }
 
 export async function listarTurmasOpcoes(): Promise<Opcao[]> {
@@ -125,4 +153,22 @@ export async function atualizarProfessor(
 export async function definirAtivoProfessor(id: string, ativo: boolean): Promise<ResultadoAcao> {
   await prisma.professor.update({ where: { id }, data: { ativo } });
   return { ok: true, message: ativo ? "Professor reativado" : "Professor inativado" };
+}
+
+// Soft delete: arquiva o professor (sai das listas, permanece no banco). Não deleta nada.
+export async function arquivarProfessor(id: string): Promise<ResultadoAcao> {
+  await prisma.professor.update({
+    where: { id },
+    data: { arquivado: true, arquivadoEm: new Date() },
+  });
+  return { ok: true, message: "Professor arquivado" };
+}
+
+// Restaura um professor arquivado (volta às listas do dia a dia).
+export async function desarquivarProfessor(id: string): Promise<ResultadoAcao> {
+  await prisma.professor.update({
+    where: { id },
+    data: { arquivado: false, arquivadoEm: null },
+  });
+  return { ok: true, message: "Professor restaurado" };
 }

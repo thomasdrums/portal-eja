@@ -5,6 +5,8 @@ import {
   criarProfessor,
   atualizarProfessor,
   definirAtivoProfessor,
+  arquivarProfessor,
+  desarquivarProfessor,
   type NovoProfessorInput,
   type EdicaoProfessorInput,
   type ResultadoAcao,
@@ -32,6 +34,19 @@ export async function definirAtivoProfessorAction(
   ativo: boolean,
 ): Promise<ResultadoAcao> {
   const res = await definirAtivoProfessor(id, ativo);
+  if (res.ok) revalidatePath(PATH);
+  return res;
+}
+
+// "Excluir" = arquivar (soft delete). O registro sai das listas mas fica no banco.
+export async function arquivarProfessorAction(id: string): Promise<ResultadoAcao> {
+  const res = await arquivarProfessor(id);
+  if (res.ok) revalidatePath(PATH);
+  return res;
+}
+
+export async function desarquivarProfessorAction(id: string): Promise<ResultadoAcao> {
+  const res = await desarquivarProfessor(id);
   if (res.ok) revalidatePath(PATH);
   return res;
 }

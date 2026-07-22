@@ -3,12 +3,14 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft } from "lucide-react";
+import { ChevronLeft, Trash2, RotateCcw, X } from "lucide-react";
 import type { Opcao, ProfessorRow } from "@/lib/queries/professores";
 import {
   criarProfessorAction,
   atualizarProfessorAction,
   definirAtivoProfessorAction,
+  arquivarProfessorAction,
+  desarquivarProfessorAction,
 } from "./actions";
 
 type Form = {
@@ -66,11 +68,13 @@ function SelOpcao({
 
 export default function GestaoProfessoresClient({
   professoresIniciais,
+  arquivadosIniciais,
   areas,
   polos,
   turmas,
 }: {
   professoresIniciais: ProfessorRow[];
+  arquivadosIniciais: ProfessorRow[];
   areas: Opcao[];
   polos: Opcao[];
   turmas: Opcao[];
@@ -79,12 +83,17 @@ export default function GestaoProfessoresClient({
   const [isPending, startTransition] = useTransition();
 
   const lista = professoresIniciais;
+  const arquivados = arquivadosIniciais;
+  const [aba, setAba] = useState<"ativos" | "arquivados">("ativos");
   const [modo, setModo] = useState<"lista" | "novo" | "editar">("lista");
   const [editando, setEditando] = useState<ProfessorRow | null>(null);
   const [filtroAtivo, setFiltroAtivo] = useState<"todos" | "ativos" | "inativos">("ativos");
   const [busca, setBusca] = useState("");
   const [erro, setErro] = useState("");
   const [aviso, setAviso] = useState("");
+
+  // Confirmação de "Excluir" (arquivar) — guarda o professor-alvo.
+  const [excluirAlvo, setExcluirAlvo] = useState<ProfessorRow | null>(null);
 
   const formVazio: Form = useMemo(
     () => ({
@@ -95,8 +104,10 @@ export default function GestaoProfessoresClient({
   );
   const [form, setForm] = useState<Form>(formVazio);
 
-  const visivel = lista.filter((p) => {
-    const ativoOk = filtroAtivo === "todos" || (filtroAtivo === "ativos" ? p.ativo : !p.ativo);
+  const visivel = (aba === "ativos" ? lista : arquivados).filter((p) => {
+    // Na aba "arquivados", o filtro ativo/inativo não se aplica.
+    const ativoOk =
+      aba === "arquivados" || filtroAtivo === "todos" || (filtroAtivo === "ativos" ? p.ativo : !p.ativo);
     const buscaOk = !busca || p.nome.toLowerCase().includes(busca.toLowerCase()) || p.poloNome.toLowerCase().includes(busca.toLowerCase());
     return ativoOk && buscaOk;
   });
@@ -156,6 +167,26 @@ export default function GestaoProfessoresClient({
   function definirAtivo(id: string, ativo: boolean) {
     startTransition(async () => {
       const res = await definirAtivoProfessorAction(id, ativo);
+      showAviso(res.message);
+      if (res.ok) router.refresh();
+    });
+  }
+
+  // "Excluir" = arquivar (soft delete). Sai da lista; continua no banco.
+  function confirmarExcluir() {
+    if (!excluirAlvo) return;
+    const id = excluirAlvo.id;
+    startTransition(async () => {
+      const res = await arquivarProfessorAction(id);
+      setExcluirAlvo(null);
+      showAviso(res.message);
+      if (res.ok) router.refresh();
+    });
+  }
+
+  function restaurar(id: string) {
+    startTransition(async () => {
+      const res = await desarquivarProfessorAction(id);
       showAviso(res.message);
       if (res.ok) router.refresh();
     });
@@ -267,6 +298,27 @@ export default function GestaoProfessoresClient({
         </div>
       )}
 
+      {/* Abas: professores ativos x arquivados */}
+      <div className="flex flex-wrap items-center gap-2">
+        {(["ativos", "arquivados"] as const).map((op) => (
+          <button
+            key={op}
+            onClick={() => setAba(op)}
+            className={`rounded px-3 py-1.5 text-xs font-semibold capitalize transition ${
+              aba === op ? "bg-[#009640] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"
+            }`}
+          >
+            {op} ({op === "ativos" ? lista.length : arquivados.length})
+          </button>
+        ))}
+      </div>
+
+      <p className="text-xs text-[#9CA3AF]">
+        {aba === "ativos"
+          ? '"Excluir" arquiva o professor: ele sai das listas, mas continua salvo no banco. Restaure na aba "Arquivados".'
+          : "Professores arquivados (não aparecem nas listas normais e não conseguem acessar a plataforma)."}
+      </p>
+
       <div className="flex flex-wrap items-center gap-3">
         <input
           type="text"
@@ -275,15 +327,16 @@ export default function GestaoProfessoresClient({
           placeholder="Buscar por nome ou polo…"
           className="rounded border border-[#D9D9D9] px-3 py-2 text-sm text-gray-800 outline-none focus:border-[#009640] focus:ring-2 focus:ring-[#009640]/20 sm:w-64"
         />
-        {(["ativos", "inativos", "todos"] as const).map((op) => (
-          <button
-            key={op}
-            onClick={() => setFiltroAtivo(op)}
-            className={`rounded px-3 py-1.5 text-xs font-semibold capitalize transition ${filtroAtivo === op ? "bg-[#009640] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
-          >
-            {op}
-          </button>
-        ))}
+        {aba === "ativos" &&
+          (["ativos", "inativos", "todos"] as const).map((op) => (
+            <button
+              key={op}
+              onClick={() => setFiltroAtivo(op)}
+              className={`rounded px-3 py-1.5 text-xs font-semibold capitalize transition ${filtroAtivo === op ? "bg-[#009640] text-white" : "bg-gray-100 text-gray-600 hover:bg-gray-200"}`}
+            >
+              {op}
+            </button>
+          ))}
       </div>
 
       <div className="space-y-3">
@@ -293,7 +346,7 @@ export default function GestaoProfessoresClient({
           </div>
         )}
         {visivel.map((p) => (
-          <div key={p.id} className={`overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${!p.ativo ? "opacity-60" : ""}`}>
+          <div key={p.id} className={`overflow-hidden rounded-lg border border-[#E5E7EB] bg-white shadow-[0_1px_3px_rgba(0,0,0,0.06)] ${aba === "ativos" && !p.ativo ? "opacity-60" : ""}`}>
             <div className="flex items-center justify-between bg-[#009640] px-5 py-3">
               <div>
                 <span className="font-bold text-white">{p.nome}</span>
@@ -313,16 +366,83 @@ export default function GestaoProfessoresClient({
                 </div>
               )}
             </div>
-            <div className="flex gap-2 border-t border-[#E5E7EB] px-5 py-2.5">
-              <button onClick={() => abrirEditar(p)} className="text-xs font-semibold text-[#009640] hover:underline">Editar</button>
-              {p.ativo
-                ? <button onClick={() => definirAtivo(p.id, false)} disabled={isPending} className="text-xs font-semibold text-red-500 hover:underline disabled:opacity-50">Inativar</button>
-                : <button onClick={() => definirAtivo(p.id, true)} disabled={isPending} className="text-xs font-semibold text-[#009640] hover:underline disabled:opacity-50">Reativar</button>
-              }
+            <div className="flex items-center gap-3 border-t border-[#E5E7EB] px-5 py-2.5">
+              {aba === "arquivados" ? (
+                <>
+                  <span className="text-xs text-gray-400">Arquivado em {p.arquivadoEm ?? "—"}</span>
+                  <button
+                    onClick={() => restaurar(p.id)}
+                    disabled={isPending}
+                    className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-[#009640] hover:underline disabled:opacity-50"
+                  >
+                    <RotateCcw size={13} />
+                    Restaurar
+                  </button>
+                </>
+              ) : (
+                <>
+                  <button onClick={() => abrirEditar(p)} className="text-xs font-semibold text-[#009640] hover:underline">Editar</button>
+                  {p.ativo
+                    ? <button onClick={() => definirAtivo(p.id, false)} disabled={isPending} className="text-xs font-semibold text-red-500 hover:underline disabled:opacity-50">Inativar</button>
+                    : <button onClick={() => definirAtivo(p.id, true)} disabled={isPending} className="text-xs font-semibold text-[#009640] hover:underline disabled:opacity-50">Reativar</button>
+                  }
+                  <button
+                    onClick={() => setExcluirAlvo(p)}
+                    disabled={isPending}
+                    className="ml-auto inline-flex items-center gap-1 text-xs font-semibold text-red-600 hover:underline disabled:opacity-50"
+                  >
+                    <Trash2 size={13} />
+                    Excluir
+                  </button>
+                </>
+              )}
             </div>
           </div>
         ))}
       </div>
+
+      {/* Confirmação de excluir (arquivar) */}
+      {excluirAlvo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-lg border border-[#E5E7EB] bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-3.5">
+              <h2 className="text-sm font-bold text-gray-900">Excluir professor</h2>
+              <button
+                onClick={() => setExcluirAlvo(null)}
+                className="text-[#9CA3AF] transition hover:text-gray-700"
+                aria-label="Fechar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="space-y-2 p-5">
+              <p className="text-sm text-gray-700">
+                Tem certeza que deseja excluir <span className="font-semibold">{excluirAlvo.nome}</span>?
+              </p>
+              <p className="text-xs text-[#6B7280]">
+                O registro sairá das listas, mas ficará <span className="font-semibold">arquivado no banco</span>{" "}
+                (nada é apagado). Se o professor tiver acesso, o login fica bloqueado enquanto arquivado.
+              </p>
+            </div>
+            <div className="flex justify-end gap-2 border-t border-[#E5E7EB] px-5 py-3.5">
+              <button
+                onClick={() => setExcluirAlvo(null)}
+                className="rounded border border-[#D9D9D9] px-4 py-2 text-sm font-semibold text-[#4B5563] transition hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={confirmarExcluir}
+                disabled={isPending}
+                className="inline-flex items-center gap-1.5 rounded bg-red-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-red-600 disabled:opacity-50"
+              >
+                <Trash2 size={15} />
+                {isPending ? "Arquivando…" : "Excluir (arquivar)"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

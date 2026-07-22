@@ -6,6 +6,9 @@ import {
   atualizarAluno,
   definirAtivo,
   resetarSenhaAluno,
+  definirSenhaAluno,
+  arquivarAluno,
+  desarquivarAluno,
   type NovoAlunoInput,
   type EdicaoAlunoInput,
   type ResultadoAluno,
@@ -37,4 +40,22 @@ export async function definirAtivoAction(id: string, ativo: boolean): Promise<Re
 export async function resetarSenhaAction(id: string): Promise<ResultadoAluno> {
   // Não altera a lista de alunos, então não precisa revalidar a rota.
   return resetarSenhaAluno(id);
+}
+
+export async function definirSenhaAction(id: string, senha: string): Promise<ResultadoAluno> {
+  // Não altera a lista de alunos, então não precisa revalidar a rota.
+  return definirSenhaAluno(id, senha);
+}
+
+// "Excluir" = arquivar (soft delete). O registro sai das listas mas fica no banco.
+export async function arquivarAlunoAction(id: string): Promise<ResultadoAluno> {
+  const res = await arquivarAluno(id);
+  if (res.ok) revalidatePath(PATH);
+  return res;
+}
+
+export async function desarquivarAlunoAction(id: string): Promise<ResultadoAluno> {
+  const res = await desarquivarAluno(id);
+  if (res.ok) revalidatePath(PATH);
+  return res;
 }

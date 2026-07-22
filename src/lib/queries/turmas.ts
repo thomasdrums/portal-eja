@@ -34,8 +34,13 @@ export async function listarTurmas(): Promise<TurmaRow[]> {
     orderBy: { nome: "asc" },
     include: {
       polo: { select: { nome: true } },
-      professores: { include: { professor: { select: { nome: true } } } },
-      _count: { select: { alunos: true } },
+      // Só professores não-arquivados aparecem vinculados à turma.
+      professores: {
+        where: { professor: { arquivado: false } },
+        include: { professor: { select: { nome: true } } },
+      },
+      // Contagem de alunos considera apenas os não-arquivados.
+      _count: { select: { alunos: { where: { arquivado: false } } } },
     },
   });
 

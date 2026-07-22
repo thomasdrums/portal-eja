@@ -1,5 +1,6 @@
 import {
   listarProfessores,
+  listarProfessoresArquivados,
   listarAreas,
   listarPolos,
   listarTurmasOpcoes,
@@ -9,8 +10,9 @@ import GestaoProfessoresClient from "./gestao-professores-client";
 export const dynamic = "force-dynamic";
 
 export default async function GestaoProfessoresPage() {
-  const [professores, areas, polos, turmas] = await Promise.all([
+  const [professores, arquivados, areas, polos, turmas] = await Promise.all([
     listarProfessores(),
+    listarProfessoresArquivados(),
     listarAreas(),
     listarPolos(),
     listarTurmasOpcoes(),
@@ -18,6 +20,7 @@ export default async function GestaoProfessoresPage() {
   return (
     <GestaoProfessoresClient
       professoresIniciais={professores}
+      arquivadosIniciais={arquivados}
       areas={areas}
       polos={polos}
       turmas={turmas}

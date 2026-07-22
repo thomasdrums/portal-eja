@@ -30,6 +30,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
         const isValid = bcrypt.compareSync(password, user.passwordHash);
         if (!isValid) return null;
 
+        // Aluno/Professor arquivado (soft delete) não pode acessar a plataforma.
+        if (user.aluno?.arquivado || user.professor?.arquivado) return null;
+
         // Para PROFESSOR, a disciplina vem do nome da área do perfil Professor.
         const disciplina =
           user.role === "PROFESSOR" ? user.professor?.area?.nome ?? null : null;
