@@ -92,7 +92,9 @@
       "Bash(node -e \"console.log\\(require\\('./node_modules/next/package.json'\\).version\\)\")",
       "Bash(TMPF=C:/Users/alves/AppData/Local/Temp/claude/C--Users-alves-Documents-EJA/71ac6f84-a28a-47b1-9162-15940f832244/scratchpad/freq-tab.tsx node -e ' *)",
       "Bash(rm src/components/dashboard/AreaCard.tsx)",
-      "Bash(node -e \"const p=require\\('./package.json'\\);console.log\\(JSON.stringify\\(p.scripts\\)\\);console.log\\('tsx?',!!\\(p.devDependencies&&p.devDependencies.tsx\\),'ts-node?',!!\\(p.devDependencies&&p.devDependencies['ts-node']\\)\\)\")"
+      "Bash(node -e \"const p=require\\('./package.json'\\);console.log\\(JSON.stringify\\(p.scripts\\)\\);console.log\\('tsx?',!!\\(p.devDependencies&&p.devDependencies.tsx\\),'ts-node?',!!\\(p.devDependencies&&p.devDependencies['ts-node']\\)\\)\")",
+      "PowerShell(Get-CimInstance *)",
+      "Bash(node -e \"const p=require\\('./package.json'\\);console.log\\(JSON.stringify\\(p.scripts,null,1\\)\\)\")"
     ]
   }
 }

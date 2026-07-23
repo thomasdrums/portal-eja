@@ -3,12 +3,14 @@
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ChevronLeft, Trash2, RotateCcw, X } from "lucide-react";
+import { ChevronLeft, Trash2, RotateCcw, X, KeyRound, Check } from "lucide-react";
 import type { Opcao, ProfessorRow } from "@/lib/queries/professores";
 import {
   criarProfessorAction,
   atualizarProfessorAction,
   definirAtivoProfessorAction,
+  resetarSenhaProfessorAction,
+  definirSenhaProfessorAction,
   arquivarProfessorAction,
   desarquivarProfessorAction,
 } from "./actions";
@@ -95,6 +97,12 @@ export default function GestaoProfessoresClient({
   // Confirmação de "Excluir" (arquivar) — guarda o professor-alvo.
   const [excluirAlvo, setExcluirAlvo] = useState<ProfessorRow | null>(null);
 
+  // Senha: alvo do modal "Definir senha" + avisos curtos por professor.
+  const [senhaAlvo, setSenhaAlvo] = useState<ProfessorRow | null>(null);
+  const [novaSenha, setNovaSenha] = useState("");
+  const [erroSenha, setErroSenha] = useState("");
+  const [flash, setFlash] = useState<Record<string, string>>({});
+
   const formVazio: Form = useMemo(
     () => ({
       nome: "", cpf: "", email: "", telefone: "",
@@ -115,6 +123,44 @@ export default function GestaoProfessoresClient({
   function showAviso(msg: string) {
     setAviso(msg);
     setTimeout(() => setAviso(""), 3500);
+  }
+
+  // Aviso curto no cartão do próprio professor (ex.: senha redefinida).
+  function showFlash(id: string, msg: string) {
+    setFlash((f) => ({ ...f, [id]: msg }));
+    setTimeout(() => setFlash((f) => ({ ...f, [id]: "" })), 4000);
+  }
+
+  function resetarSenha(id: string) {
+    startTransition(async () => {
+      const res = await resetarSenhaProfessorAction(id);
+      showFlash(id, res.message);
+    });
+  }
+
+  function abrirDefinirSenha(p: ProfessorRow) {
+    setSenhaAlvo(p);
+    setNovaSenha("");
+    setErroSenha("");
+  }
+
+  function salvarSenha() {
+    if (!senhaAlvo) return;
+    if (novaSenha.length < 6) {
+      setErroSenha("A senha deve ter ao menos 6 caracteres.");
+      return;
+    }
+    const id = senhaAlvo.id;
+    startTransition(async () => {
+      const res = await definirSenhaProfessorAction(id, novaSenha);
+      if (!res.ok) {
+        setErroSenha(res.message);
+        return;
+      }
+      setSenhaAlvo(null);
+      setNovaSenha("");
+      showFlash(id, res.message);
+    });
   }
 
   function abrirNovo() {
@@ -222,6 +268,16 @@ export default function GestaoProfessoresClient({
             <Input label="Telefone" value={form.telefone} onChange={(v) => setForm((f) => ({ ...f, telefone: v }))} placeholder="(81) 99999-9999" />
             <div className="col-span-2">
               <Input label="E-mail" value={form.email} onChange={(v) => setForm((f) => ({ ...f, email: v }))} type="email" placeholder="professor@ejasesi.org.br" />
+              <p className="mt-1 text-[11px] text-[#6B7280]">
+                Acesso à plataforma:{" "}
+                {editando?.temAcesso ? (
+                  <span className="font-semibold text-[#007A33]">Sim</span>
+                ) : (
+                  <span className="font-semibold text-gray-500">
+                    Não — preencha o e-mail e salve para criar a conta (senha inicial Prof@sesi)
+                  </span>
+                )}
+              </p>
             </div>
             <SelOpcao label="Polo" value={form.poloId} onChange={(v) => setForm((f) => ({ ...f, poloId: v }))} options={polos} />
             <SelOpcao label="Área" value={form.areaId} onChange={(v) => setForm((f) => ({ ...f, areaId: v }))} options={areas} />
@@ -358,6 +414,17 @@ export default function GestaoProfessoresClient({
               <span><span className="font-semibold">CPF:</span> {p.cpf || "—"}</span>
               <span><span className="font-semibold">Tel:</span> {p.telefone || "—"}</span>
               <span className="col-span-2 truncate sm:col-span-1"><span className="font-semibold">E-mail:</span> {p.email || "—"}</span>
+              <span title={p.temAcesso ? "Conta de login criada" : "Cadastre um e-mail para gerar o acesso"}>
+                <span className="font-semibold">Tem acesso:</span>{" "}
+                <span className={p.temAcesso ? "font-semibold text-[#007A33]" : "font-semibold text-gray-500"}>
+                  {p.temAcesso ? "sim" : "não"}
+                </span>
+              </span>
+              {flash[p.id] && (
+                <span className="col-span-2 inline-flex items-center gap-1 text-[11px] font-semibold text-[#007A33] sm:col-span-3">
+                  <Check size={12} /> {flash[p.id]}
+                </span>
+              )}
               {p.turmasVinculadas.length > 0 && (
                 <div className="col-span-2 flex flex-wrap gap-1.5 pt-1 sm:col-span-3">
                   {p.turmasVinculadas.map((t) => (
@@ -382,6 +449,24 @@ export default function GestaoProfessoresClient({
               ) : (
                 <>
                   <button onClick={() => abrirEditar(p)} className="text-xs font-semibold text-[#009640] hover:underline">Editar</button>
+                  <button
+                    onClick={() => resetarSenha(p.id)}
+                    disabled={isPending || !p.temAcesso}
+                    title={p.temAcesso ? "Redefinir senha para Prof@sesi" : "Cadastre um e-mail para gerar o acesso"}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#4B5563] hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline"
+                  >
+                    <KeyRound size={13} />
+                    Redefinir senha
+                  </button>
+                  <button
+                    onClick={() => abrirDefinirSenha(p)}
+                    disabled={isPending || !p.temAcesso}
+                    title={p.temAcesso ? "Definir uma senha específica" : "Cadastre um e-mail para gerar o acesso"}
+                    className="inline-flex items-center gap-1 text-xs font-semibold text-[#4B5563] hover:underline disabled:cursor-not-allowed disabled:opacity-50 disabled:hover:no-underline"
+                  >
+                    <KeyRound size={13} />
+                    Definir senha
+                  </button>
                   {p.ativo
                     ? <button onClick={() => definirAtivo(p.id, false)} disabled={isPending} className="text-xs font-semibold text-red-500 hover:underline disabled:opacity-50">Inativar</button>
                     : <button onClick={() => definirAtivo(p.id, true)} disabled={isPending} className="text-xs font-semibold text-[#009640] hover:underline disabled:opacity-50">Reativar</button>
@@ -400,6 +485,54 @@ export default function GestaoProfessoresClient({
           </div>
         ))}
       </div>
+
+      {/* Modal de definir senha específica */}
+      {senhaAlvo && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-sm rounded-lg border border-[#E5E7EB] bg-white shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#E5E7EB] px-5 py-3.5">
+              <h2 className="text-sm font-bold text-gray-900">Definir senha — {senhaAlvo.nome}</h2>
+              <button
+                onClick={() => setSenhaAlvo(null)}
+                className="text-[#9CA3AF] transition hover:text-gray-700"
+                aria-label="Fechar"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="space-y-3 p-5">
+              <Input
+                label="Nova senha"
+                value={novaSenha}
+                onChange={setNovaSenha}
+                placeholder="Mínimo 6 caracteres"
+              />
+              <p className="text-[11px] text-[#6B7280]">
+                A senha é gravada de forma segura (bcrypt). O professor acessa com o e-mail{" "}
+                <span className="font-semibold">{senhaAlvo.email}</span>.
+              </p>
+              {erroSenha && <p className="text-xs font-semibold text-red-600">{erroSenha}</p>}
+            </div>
+
+            <div className="flex justify-end gap-2 border-t border-[#E5E7EB] px-5 py-3.5">
+              <button
+                onClick={() => setSenhaAlvo(null)}
+                className="rounded border border-[#D9D9D9] px-4 py-2 text-sm font-semibold text-[#4B5563] transition hover:bg-gray-50"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={salvarSenha}
+                disabled={isPending}
+                className="rounded bg-[#009640] px-4 py-2 text-sm font-semibold text-white transition hover:bg-[#007A33] disabled:opacity-50"
+              >
+                {isPending ? "Salvando…" : "Salvar senha"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Confirmação de excluir (arquivar) */}
       {excluirAlvo && (

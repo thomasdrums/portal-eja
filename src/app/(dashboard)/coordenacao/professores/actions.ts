@@ -5,6 +5,8 @@ import {
   criarProfessor,
   atualizarProfessor,
   definirAtivoProfessor,
+  resetarSenhaProfessor,
+  definirSenhaProfessor,
   arquivarProfessor,
   desarquivarProfessor,
   type NovoProfessorInput,
@@ -36,6 +38,19 @@ export async function definirAtivoProfessorAction(
   const res = await definirAtivoProfessor(id, ativo);
   if (res.ok) revalidatePath(PATH);
   return res;
+}
+
+export async function resetarSenhaProfessorAction(id: string): Promise<ResultadoAcao> {
+  // Não altera a lista de professores, então não precisa revalidar a rota.
+  return resetarSenhaProfessor(id);
+}
+
+export async function definirSenhaProfessorAction(
+  id: string,
+  senha: string,
+): Promise<ResultadoAcao> {
+  // Não altera a lista de professores, então não precisa revalidar a rota.
+  return definirSenhaProfessor(id, senha);
 }
 
 // "Excluir" = arquivar (soft delete). O registro sai das listas mas fica no banco.

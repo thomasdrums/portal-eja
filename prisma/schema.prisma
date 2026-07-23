@@ -150,6 +150,7 @@ model Professor {
   id          String           @id @default(cuid())
   nome        String
   cpf         String?
+  email       String?
   telefone    String?
   ativo       Boolean          @default(true)
   arquivado   Boolean          @default(false)
