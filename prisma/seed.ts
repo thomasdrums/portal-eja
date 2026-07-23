@@ -30,6 +30,15 @@ const CONFIG_TO_SLUG: Record<AreaConfigId, string> = {
   cienciasHumanas: "ciencias-humanas",
 };
 
+// Número de aulas PREVISTAS por competência (currículo do cliente).
+// Usado no cálculo de frequência (total exigido = aulas das competências não certificadas).
+const AULAS_POR_COMPETENCIA: Record<AreaConfigId, Record<string, number>> = {
+  matematica:       { C1: 2, C2: 5, C3: 4, C4: 1, C5: 2 },
+  linguagens:       { C1: 3, C2: 5, C3: 3, C4: 3 },
+  cienciasNatureza: { C1: 2, C2: 3, C3: 4, C4: 1 },
+  cienciasHumanas:  { C1: 4, C2: 2, C3: 2, C4: 2 },
+};
+
 // ── Usuários de login (mesmos e-mails/senhas dos mocks) ──
 // Senhas em texto puro só para o seed de teste; hash gerado por bcryptjs (mesmo método do login).
 const USERS = [
@@ -64,10 +73,11 @@ async function main() {
     for (let i = 0; i < codigos.length; i++) {
       const codigo = codigos[i];
       const habilidades = comps[codigo];
+      const aulas = AULAS_POR_COMPETENCIA[configId]?.[codigo] ?? 0;
       await prisma.competencia.upsert({
         where: { areaId_codigo: { areaId, codigo } },
-        update: { habilidades, ordem: i + 1 },
-        create: { areaId, codigo, habilidades, ordem: i + 1 },
+        update: { habilidades, aulas, ordem: i + 1 },
+        create: { areaId, codigo, habilidades, aulas, ordem: i + 1 },
       });
       competenciasCount++;
     }

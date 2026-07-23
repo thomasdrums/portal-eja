@@ -43,6 +43,16 @@ enum TipoDocumento {
   CERTIFICADO
   OUTROS
 }
+enum TipoAula {
+  AREA
+  INTERAREA
+  GERAL
+}
+enum StatusResposta {
+  PENDENTE
+  VALIDADA
+  RECUSADA
+}
 
 model User {
   id           String     @id @default(cuid())
@@ -90,13 +100,15 @@ model Area {
   aulas        AulaGravada[]
 }
 model Competencia {
-  id          String @id @default(cuid())
+  id          String        @id @default(cuid())
   codigo      String
-  ordem       Int    @default(0)
-  habilidades Int    @default(0)
+  ordem       Int           @default(0)
+  habilidades Int           @default(0)
+  aulas       Int           @default(0) // número de aulas previstas para a competência (currículo)
   areaId      String
-  area        Area   @relation(fields: [areaId], references: [id])
+  area        Area          @relation(fields: [areaId], references: [id])
   notas       Nota[]
+  aulasGravadas AulaGravada[]
   @@unique([areaId, codigo])
 }
 model Aluno {
@@ -129,6 +141,7 @@ model Aluno {
   frequencias         Frequencia[]
   solicitacoes        Solicitacao[]
   observacoes         Observacao[]
+  respostas           RespostaAula[]
   createdAt           DateTime      @default(now())
   updatedAt           DateTime      @updatedAt
   @@index([turmaId])
@@ -150,6 +163,7 @@ model Professor {
   turmas      TurmaProfessor[]
   aulas       AulaGravada[]
   observacoes Observacao[]
+  respostasValidadas RespostaAula[]
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
 }
@@ -189,21 +203,44 @@ model Frequencia {
   @@index([alunoId])
 }
 model AulaGravada {
-  id            String     @id @default(cuid())
+  id            String         @id @default(cuid())
   titulo        String
   data          DateTime
   youtubeUrl    String
-  formularioUrl String?
-  areaId        String
-  area          Area       @relation(fields: [areaId], references: [id])
+  pergunta      String?
+  tipo          TipoAula       @default(AREA)
+  areaId        String?
+  area          Area?          @relation(fields: [areaId], references: [id])
+  competenciaId String?
+  competencia   Competencia?   @relation(fields: [competenciaId], references: [id])
   professorId   String?
-  professor     Professor? @relation(fields: [professorId], references: [id])
+  professor     Professor?     @relation(fields: [professorId], references: [id])
   turmaId       String?
-  turma         Turma?     @relation(fields: [turmaId], references: [id])
-  createdAt     DateTime   @default(now())
-  updatedAt     DateTime   @updatedAt
+  turma         Turma?         @relation(fields: [turmaId], references: [id])
+  respostas     RespostaAula[]
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
   @@index([areaId])
   @@index([turmaId])
+  @@index([competenciaId])
+}
+model RespostaAula {
+  id            String         @id @default(cuid())
+  texto         String
+  status        StatusResposta @default(PENDENTE)
+  motivoRecusa  String?
+  validadaEm    DateTime?
+  alunoId       String
+  aluno         Aluno          @relation(fields: [alunoId], references: [id], onDelete: Cascade)
+  aulaId        String
+  aula          AulaGravada    @relation(fields: [aulaId], references: [id], onDelete: Cascade)
+  validadaPorId String?
+  validadaPor   Professor?     @relation(fields: [validadaPorId], references: [id])
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  @@unique([alunoId, aulaId])
+  @@index([alunoId])
+  @@index([aulaId])
 }
 model Observacao {
   id          String     @id @default(cuid())

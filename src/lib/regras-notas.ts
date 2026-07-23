@@ -19,6 +19,9 @@ export const CAMPOS_VAZIOS: CamposCompetencia = {
   voceAutor: null,
 };
 
+// Frequência mínima (%) exigida para aprovação. Definida pelo cliente em 100%.
+export const FREQUENCIA_MINIMA_APROVACAO = 100;
+
 export type MediaResultado =
   | { tipo: "certificado"; percentual: number }
   | { tipo: "nota"; valor: number }
@@ -113,7 +116,7 @@ export type SituacaoArea = "Aprovado" | "Em Processo";
 export function situacaoArea(
   competencias: { campos: CamposCompetencia; total: number }[],
 ): SituacaoArea {
-  // TODO: incluir frequência ≥ 75% nesta regra (Fase 2)
+  // TODO: incluir frequência ≥ FREQUENCIA_MINIMA_APROVACAO (100%) nesta regra (Fase 2)
   if (competencias.length === 0) return "Em Processo";
   const todasAprovadas = competencias.every((c) =>
     competenciaAprovada(c.campos, c.total),
