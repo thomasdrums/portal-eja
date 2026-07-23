@@ -664,9 +664,11 @@ function SituacaoCell({
   const cfg =
     sit === "aprovado"
       ? { txt: "Aprovado", cls: "bg-[#EAF6EE] text-[#007A33]" }
-      : sit === "cursando"
-        ? { txt: "Cursando", cls: "bg-amber-50 text-amber-700" }
-        : { txt: "—", cls: "bg-gray-50 text-gray-400" };
+      : sit === "pendente_frequencia"
+        ? { txt: "Pend. freq.", cls: "bg-amber-50 text-amber-700" }
+        : sit === "cursando"
+          ? { txt: "Cursando", cls: "bg-amber-50 text-amber-700" }
+          : { txt: "—", cls: "bg-gray-50 text-gray-400" };
   return (
     <td
       className={`border-b border-[#E5E7EB] px-1.5 py-1.5 text-center ${

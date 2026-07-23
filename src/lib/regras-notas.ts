@@ -71,26 +71,20 @@ export function mediaCompetencia(
   return { tipo: "vazio" };
 }
 
-// d) Competência aprovada?
-export function competenciaAprovada(
-  campos: CamposCompetencia,
-  total: number,
-): boolean {
+// "Atingiu a nota" = nota composta ≥ 60 OU certificação suficiente (SEM considerar a presença).
+function atingiuNota(campos: CamposCompetencia, total: number): boolean {
   const media = mediaCompetencia(campos, total);
-  if (media.tipo === "certificado") {
-    return (campos.certificacao ?? 0) >= minParaCertificar(total);
-  }
-  if (media.tipo === "nota") {
-    return media.valor >= 60;
-  }
+  if (media.tipo === "certificado") return (campos.certificacao ?? 0) >= minParaCertificar(total);
+  if (media.tipo === "nota") return media.valor >= 60;
   return false;
 }
 
-// Situação resumida de UMA competência (usada no painel "Visão Geral").
-//  - "aprovado": média é Certificado OU nota ≥ 60
-//  - "cursando": há nota lançada, mas ainda não atingiu
-//  - "vazio":    nada lançado
-export type SituacaoCompetencia = "aprovado" | "cursando" | "vazio";
+// Situação resumida de UMA competência (fonte única da regra — usada no aluno, na grade e na Visão Geral).
+//  - "aprovado":            atingiu a nota E (é certificado OU a PRESENÇA foi lançada)
+//  - "pendente_frequencia": atingiu a nota composta, mas o campo PRESENÇA (0–20) está vazio
+//  - "cursando":            há nota lançada, mas ainda não atingiu (< 60 e não certificado)
+//  - "vazio":               nada lançado
+export type SituacaoCompetencia = "aprovado" | "pendente_frequencia" | "cursando" | "vazio";
 
 export function situacaoCompetencia(
   campos: CamposCompetencia,
@@ -98,8 +92,19 @@ export function situacaoCompetencia(
 ): SituacaoCompetencia {
   const media = mediaCompetencia(campos, total);
   if (media.tipo === "vazio") return "vazio";
+  if (!atingiuNota(campos, total)) return "cursando";
+  // Certificação suficiente aprova (não depende de presença).
   if (media.tipo === "certificado") return "aprovado";
-  return media.valor >= 60 ? "aprovado" : "cursando";
+  // Nota composta: exige a PRESENÇA lançada (campo presenca != null).
+  return campos.presenca != null ? "aprovado" : "pendente_frequencia";
+}
+
+// d) Competência aprovada? (regra única: aprovado = situação "aprovado", ou seja, nota + presença)
+export function competenciaAprovada(
+  campos: CamposCompetencia,
+  total: number,
+): boolean {
+  return situacaoCompetencia(campos, total) === "aprovado";
 }
 
 export type SituacaoArea = "Aprovado" | "Em Processo";

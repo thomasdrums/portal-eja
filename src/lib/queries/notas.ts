@@ -1,6 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma } from "@prisma/client";
-import { CAMPOS_VAZIOS, type CamposCompetencia } from "@/lib/regras-notas";
+import {
+  CAMPOS_VAZIOS,
+  mediaCompetencia,
+  situacaoCompetencia,
+  type CamposCompetencia,
+  type SituacaoCompetencia,
+} from "@/lib/regras-notas";
 import {
   AREA_CONFIG_ORDER,
   COMPETENCIAS_CONFIG,
@@ -248,4 +254,112 @@ export async function salvarNotasDaArea(
 
   if (ops.length > 0) await prisma.$transaction(ops);
   return { ok: true, message: "Notas salvas no banco." };
+}
+
+// ── LEITURA das notas do ALUNO (tela "Notas por Área") ──────────────────────
+// Slugs das 4 áreas de notas (interárea não tem notas).
+const AREAS_NOTAS_SLUGS = Object.values(AREA_ID_TO_SLUG);
+
+export type CompetenciaNotaAluno = {
+  codigo: string;
+  mediaTexto: string; // "—" | "83" | "Cert 75%"
+  situacao: SituacaoCompetencia; // "aprovado" | "pendente_frequencia" | "cursando" | "vazio"
+};
+
+// Status exibido por área (badge), derivado das situações das competências:
+//  - "aprovado": todas as competências aprovadas (nota + presença)
+//  - "pendente_frequencia": todas atingiram a nota, mas alguma está com presença pendente
+//  - "em_processo": ainda falta atingir a nota em alguma competência
+export type StatusAreaAluno = "aprovado" | "pendente_frequencia" | "em_processo";
+
+export type AreaNotaAluno = {
+  nome: string;
+  competencias: CompetenciaNotaAluno[];
+  status: StatusAreaAluno;
+  temNota: boolean; // há alguma nota (de competência) lançada na área?
+};
+
+export type NotasAlunoResult =
+  | { temAluno: false }
+  | { temAluno: true; areas: AreaNotaAluno[] };
+
+// Texto da média a partir do resultado das regras (certificado / nota / vazio).
+function fmtMediaTexto(campos: CamposCompetencia, total: number): string {
+  const m = mediaCompetencia(campos, total);
+  if (m.tipo === "certificado") return `Cert ${m.percentual}%`;
+  if (m.tipo === "nota") return `${m.valor}`;
+  return "—";
+}
+
+// Carrega as notas do aluno vinculado à sessão. O aluno é derivado do userId no servidor.
+export async function carregarNotasDoAluno(
+  userId: string | undefined,
+): Promise<NotasAlunoResult> {
+  if (!userId) return { temAluno: false };
+
+  const aluno = await prisma.aluno.findUnique({ where: { userId }, select: { id: true } });
+  if (!aluno) return { temAluno: false };
+
+  // Áreas (ordem do banco) com suas competências (código/ordem/habilidades do banco).
+  const areas = await prisma.area.findMany({
+    where: { slug: { in: AREAS_NOTAS_SLUGS } },
+    orderBy: { ordem: "asc" },
+    select: {
+      nome: true,
+      competencias: {
+        orderBy: { ordem: "asc" },
+        select: { id: true, codigo: true, habilidades: true },
+      },
+    },
+  });
+
+  // Notas do aluno nessas competências.
+  const compIds = areas.flatMap((a) => a.competencias.map((c) => c.id));
+  const notas =
+    compIds.length > 0
+      ? await prisma.nota.findMany({
+          where: { alunoId: aluno.id, competenciaId: { in: compIds } },
+          select: {
+            competenciaId: true,
+            certificacao: true,
+            presenca: true,
+            diagnostica: true,
+            avaliativa: true,
+            voceAutor: true,
+          },
+        })
+      : [];
+  const camposPorComp = new Map(notas.map((n) => [n.competenciaId, toCampos(n)]));
+
+  const resultado: AreaNotaAluno[] = areas.map((area) => {
+    const competencias: CompetenciaNotaAluno[] = area.competencias.map((c) => {
+      const campos = camposPorComp.get(c.id) ?? CAMPOS_VAZIOS;
+      return {
+        codigo: c.codigo,
+        mediaTexto: fmtMediaTexto(campos, c.habilidades),
+        situacao: situacaoCompetencia(campos, c.habilidades),
+      };
+    });
+
+    // Status da área derivado das situações das competências (mesma regra da presença).
+    const todasAprovadas = competencias.every((c) => c.situacao === "aprovado");
+    const todasAtingiram = competencias.every(
+      (c) => c.situacao === "aprovado" || c.situacao === "pendente_frequencia",
+    );
+    const temPendFrequencia = competencias.some((c) => c.situacao === "pendente_frequencia");
+
+    let status: StatusAreaAluno;
+    if (todasAprovadas) status = "aprovado";
+    else if (todasAtingiram && temPendFrequencia) status = "pendente_frequencia";
+    else status = "em_processo";
+
+    return {
+      nome: area.nome,
+      competencias,
+      status,
+      temNota: competencias.some((c) => c.situacao !== "vazio"),
+    };
+  });
+
+  return { temAluno: true, areas: resultado };
 }
