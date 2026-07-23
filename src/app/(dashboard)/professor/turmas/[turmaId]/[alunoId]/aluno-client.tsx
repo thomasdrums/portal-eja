@@ -5,23 +5,16 @@ import Link from "next/link";
 import { useSession } from "next-auth/react";
 import {
   AREAS_CONFIG,
-  FREQ_AREAS_CONFIG,
   SITUACAO_CFG,
   notasEditaveis,
-  freqEditaveis,
   type Aluno,
   type AreaId,
-  type FreqAreaId,
 } from "@/lib/mock-data/professor";
+import type { FrequenciaAluno } from "@/lib/queries/frequencia";
 
 // ── helpers ─────────────────────────────────────────────
 function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((n) => n[0] ?? "").join("").toUpperCase();
-}
-
-function pct(presencas: number, total: number) {
-  if (total === 0) return 0;
-  return Math.round((presencas / total) * 100);
 }
 
 type Observacao = { id: string; data: string; texto: string };
@@ -99,19 +92,20 @@ function ReadOnlyBadge() {
 export default function AlunoDetalheClient({
   aluno: alunoInicial,
   turmaId,
+  frequencia,
 }: {
   aluno: Aluno;
   turmaId: string;
+  // Frequência CALCULADA no servidor (respostas validadas) — somente leitura.
+  frequencia: FrequenciaAluno;
 }) {
   const { data: session } = useSession();
   const userRole       = session?.user?.role       ?? "PROFESSOR";
   const userDisciplina = session?.user?.disciplina ?? null;
 
   const editableNotasIds = notasEditaveis(userDisciplina, userRole);
-  const editableFreqIds  = freqEditaveis(userDisciplina, userRole);
 
-  const canEditNotas = (id: AreaId)     => editableNotasIds.includes(id);
-  const canEditFreq  = (id: FreqAreaId) => editableFreqIds.includes(id);
+  const canEditNotas = (id: AreaId) => editableNotasIds.includes(id);
 
   const [aluno, setAluno]     = useState<Aluno | undefined>(alunoInicial);
   const [tab, setTab]         = useState<"dados" | "notas" | "frequencia" | "observacoes">("dados");
@@ -325,25 +319,19 @@ export default function AlunoDetalheClient({
   }
 
   // ── Aba: Frequência ─────────────────────────────────────
+  // SOMENTE LEITURA: a frequência é CALCULADA (respostas validadas ÷ aulas
+  // exigidas, com dispensa das competências certificadas). Não se digita mais.
   function FrequenciaTab() {
-    const al = aluno!;
-    const [editingFreq, setEditingFreq] = useState(false);
-    const [freqDraft, setFreqDraft]     = useState({ ...al.frequencia });
-
-    const hasEditableArea = editableFreqIds.length > 0;
-
-    function saveFreq() {
-      setAluno((a) => a ? { ...a, frequencia: freqDraft } : a);
-      setDraft((d) => d ? { ...d, frequencia: freqDraft } : d);
-      setEditingFreq(false);
-      flash("Frequência salva!");
+    if (!frequencia.temTurma) {
+      return (
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">
+          Este aluno ainda não está em uma turma, por isso não há aulas para contar frequência.
+        </div>
+      );
     }
 
-    const freqSource    = editingFreq ? freqDraft : al.frequencia;
-    const totalPresencas = Object.values(freqSource).reduce((s, v) => s + v.presencas, 0);
-    const totalAulas     = Object.values(freqSource).reduce((s, v) => s + v.totalAulas, 0);
-    const totalFaltas    = totalAulas - totalPresencas;
-    const totalPct       = pct(totalPresencas, totalAulas);
+    const { geral, areas, interareaValidadas } = frequencia;
+    const faltamGeral = Math.max(0, geral.totalExigido - geral.presencas);
 
     return (
       <div className="space-y-4">
@@ -351,145 +339,98 @@ export default function AlunoDetalheClient({
         <div className="rounded-3xl bg-[#009640] p-5 text-white shadow-lg">
           <p className="mb-3 text-sm font-semibold text-white/70">Frequência Total do Aluno</p>
           <div className="mb-4 flex items-end gap-2">
-            <span className="text-4xl font-extrabold">{totalPct}%</span>
-            <span className="mb-1 text-sm text-white/70">de presença geral</span>
+            <span className="text-4xl font-extrabold">{geral.percentual}%</span>
+            <span className="mb-1 text-sm text-white/70">
+              {geral.semExigencia ? "todas as competências certificadas" : "de presença geral"}
+            </span>
           </div>
           <div className="mb-4 h-2.5 overflow-hidden rounded-full bg-white/20">
             <div
-              className={`h-full rounded-full ${totalPct >= 100 ? "bg-white" : totalPct >= 75 ? "bg-white/70" : "bg-red-300"}`}
-              style={{ width: `${Math.min(totalPct, 100)}%` }}
+              className={`h-full rounded-full ${
+                geral.atingiuMinimo ? "bg-white" : geral.percentual >= 75 ? "bg-white/70" : "bg-red-300"
+              }`}
+              style={{ width: `${geral.percentual}%` }}
             />
           </div>
           <div className="grid grid-cols-3 gap-3 text-center">
             <div className="rounded-2xl bg-white/10 py-2.5">
               <p className="text-xs text-white/60">Presenças</p>
-              <p className="text-xl font-bold">{totalPresencas}</p>
+              <p className="text-xl font-bold">{geral.presencas}</p>
             </div>
             <div className="rounded-2xl bg-white/10 py-2.5">
-              <p className="text-xs text-white/60">Faltas</p>
-              <p className="text-xl font-bold">{totalFaltas}</p>
+              <p className="text-xs text-white/60">Faltam</p>
+              <p className="text-xl font-bold">{faltamGeral}</p>
             </div>
             <div className="rounded-2xl bg-white/10 py-2.5">
-              <p className="text-xs text-white/60">Total</p>
-              <p className="text-xl font-bold">{totalAulas}</p>
+              <p className="text-xs text-white/60">Exigidas</p>
+              <p className="text-xl font-bold">{geral.totalExigido}</p>
             </div>
           </div>
         </div>
 
-        <div className="flex items-center justify-between">
-          <p className="text-sm text-gray-500">Necessário 100% para aprovação por área</p>
-          {hasEditableArea && !editingFreq && (
-            <button
-              onClick={() => setEditingFreq(true)}
-              className="flex items-center gap-1 rounded-xl bg-[#EAF6EE] px-3 py-1.5 text-xs font-bold text-[#009640] hover:bg-blue-100"
-            >
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} className="h-3.5 w-3.5">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 112.652 2.652L10.582 16.07a4.5 4.5 0 01-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 011.13-1.897l8.932-8.931z" />
-              </svg>
-              Editar frequência
-            </button>
-          )}
+        <div className="rounded-lg border border-[#D9D9D9] bg-[#F9FAFB] px-4 py-2.5 text-xs text-[#4B5563]">
+          Necessário <strong>100%</strong> por área para aprovação. A frequência é calculada a
+          partir das respostas que você <strong>validou</strong> — não é digitada. Aulas{" "}
+          <strong>Interárea</strong> contam nas quatro áreas
+          {interareaValidadas > 0
+            ? ` (${interareaValidadas} validada${interareaValidadas > 1 ? "s" : ""} até agora)`
+            : ""}
+          . Competências certificadas dispensam suas aulas.
         </div>
 
-        {FREQ_AREAS_CONFIG.map((area) => {
-          const areaKey   = area.id as FreqAreaId;
-          const editable  = canEditFreq(areaKey);
-          const isEditing = editingFreq && editable;
-
-          const display = (editingFreq && editable) ? freqDraft[areaKey] : al.frequencia[areaKey];
-          const p       = pct(display.presencas, display.totalAulas);
-          const faltas  = display.totalAulas - display.presencas;
-
-          const isInterarea    = areaKey === "interarea";
-          const headerGradient = isInterarea
-            ? "from-[#b45309] to-[#d97706]"
-            : "from-[#007A33] to-[#009640]";
+        {areas.map((area) => {
+          const dispensadas = area.competencias.filter((c) => c.dispensada);
 
           return (
             <div
-              key={area.id}
-              className={`overflow-hidden rounded-3xl shadow-md ${
-                editable ? "bg-white ring-1 ring-gray-100" : "bg-gray-50 ring-1 ring-gray-200"
-              }`}
+              key={area.slug}
+              className="overflow-hidden rounded-3xl bg-white shadow-md ring-1 ring-gray-100"
             >
-              <div className={`flex items-center justify-between bg-gradient-to-r ${headerGradient} px-5 py-3`}>
-                <h3 className="font-bold text-white text-sm">{area.nome}</h3>
-                <div className="flex items-center gap-2">
-                  {!editable && <ReadOnlyBadge />}
-                  <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white">
-                    {p}%
-                  </span>
-                </div>
+              <div className="flex items-center justify-between bg-gradient-to-r from-[#007A33] to-[#009640] px-5 py-3">
+                <h3 className="text-sm font-bold text-white">{area.nome}</h3>
+                <span className="rounded-full bg-white/20 px-2.5 py-0.5 text-xs font-bold text-white">
+                  {area.semExigencia ? "Dispensado" : `${area.percentual}%`}
+                </span>
               </div>
 
               <div className="p-5">
-                {isEditing ? (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div>
-                      <p className="mb-1 text-xs font-semibold text-gray-400">Presenças</p>
-                      <input
-                        type="number"
-                        min={0}
-                        max={freqDraft[areaKey].totalAulas}
-                        value={freqDraft[areaKey].presencas}
-                        onChange={(e) =>
-                          setFreqDraft((d) => ({ ...d, [areaKey]: { ...d[areaKey], presencas: Number(e.target.value) } }))
-                        }
-                        className="w-full rounded-xl border border-[#009640]/40 bg-white px-3 py-2 text-center text-sm font-bold outline-none focus:border-[#009640] focus:ring-2 focus:ring-[#009640]/20"
-                      />
-                    </div>
-                    <div>
-                      <p className="mb-1 text-xs font-semibold text-gray-400">Total de aulas</p>
-                      <input
-                        type="number"
-                        min={1}
-                        value={freqDraft[areaKey].totalAulas}
-                        onChange={(e) =>
-                          setFreqDraft((d) => ({ ...d, [areaKey]: { ...d[areaKey], totalAulas: Number(e.target.value) } }))
-                        }
-                        className="w-full rounded-xl border border-[#009640]/40 bg-white px-3 py-2 text-center text-sm font-bold outline-none focus:border-[#009640] focus:ring-2 focus:ring-[#009640]/20"
-                      />
-                    </div>
+                <div className="mb-3 h-2.5 overflow-hidden rounded-full bg-gray-100">
+                  <div
+                    className={`h-full rounded-full ${
+                      area.atingiuMinimo ? "bg-[#009640]" : area.percentual >= 75 ? "bg-[#009640]/60" : "bg-red-400"
+                    }`}
+                    style={{ width: `${area.percentual}%` }}
+                  />
+                </div>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="rounded-2xl bg-green-50 py-2">
+                    <p className="text-xs text-gray-500">Presenças</p>
+                    <p className="text-base font-bold text-green-600">{area.presencas}</p>
                   </div>
-                ) : (
-                  <>
-                    <div className="mb-3 h-2.5 overflow-hidden rounded-full bg-gray-100">
-                      <div
-                        className={`h-full rounded-full ${p >= 100 ? "bg-[#009640]" : p >= 75 ? "bg-[#009640]/60" : "bg-red-400"}`}
-                        style={{ width: `${Math.min(p, 100)}%` }}
-                      />
-                    </div>
-                    <div className="grid grid-cols-3 gap-2 text-center">
-                      <div className={`rounded-2xl py-2 ${editable ? "bg-green-50" : "bg-gray-100"}`}>
-                        <p className="text-xs text-gray-500">Presenças</p>
-                        <p className={`text-base font-bold ${editable ? "text-green-600" : "text-gray-600"}`}>
-                          {display.presencas}
-                        </p>
-                      </div>
-                      <div className={`rounded-2xl py-2 ${editable ? "bg-red-50" : "bg-gray-100"}`}>
-                        <p className="text-xs text-gray-500">Faltas</p>
-                        <p className={`text-base font-bold ${editable ? "text-red-500" : "text-gray-600"}`}>
-                          {faltas}
-                        </p>
-                      </div>
-                      <div className="rounded-2xl bg-gray-100 py-2">
-                        <p className="text-xs text-gray-500">Total</p>
-                        <p className="text-base font-bold text-gray-700">{display.totalAulas}</p>
-                      </div>
-                    </div>
-                  </>
+                  <div className="rounded-2xl bg-red-50 py-2">
+                    <p className="text-xs text-gray-500">Faltam</p>
+                    <p className="text-base font-bold text-red-500">
+                      {area.semExigencia ? "—" : area.faltam}
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-gray-100 py-2">
+                    <p className="text-xs text-gray-500">Exigidas</p>
+                    <p className="text-base font-bold text-gray-700">
+                      {area.semExigencia ? "—" : area.totalExigido}
+                    </p>
+                  </div>
+                </div>
+
+                {dispensadas.length > 0 && (
+                  <p className="mt-3 text-xs text-[#9CA3AF]">
+                    Dispensado em {dispensadas.map((c) => c.codigo).join(", ")} (competência
+                    certificada).
+                  </p>
                 )}
               </div>
             </div>
           );
         })}
-
-        {editingFreq && (
-          <SaveBar
-            onSave={saveFreq}
-            onCancel={() => { setFreqDraft({ ...al.frequencia }); setEditingFreq(false); }}
-          />
-        )}
       </div>
     );
   }

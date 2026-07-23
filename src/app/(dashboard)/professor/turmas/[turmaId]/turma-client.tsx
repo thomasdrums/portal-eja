@@ -5,12 +5,21 @@ import Link from "next/link";
 import { ChevronLeft, Search } from "lucide-react";
 import { SITUACAO_CFG, type Turma } from "@/lib/mock-data/professor";
 import type { TotaisMap } from "@/lib/queries/notas";
-import { GradeNotas } from "@/components/professor/GradeNotas";
+import { GradeNotas, type FrequenciasGrade } from "@/components/professor/GradeNotas";
 
 // UI da página da turma (abas/busca/tabela + grade). A turma vem REAL do banco (via props);
 // as notas são lidas do banco (Etapa B) e usadas como estado inicial da grade. O salvar de
 // verdade ainda não foi ligado (Etapa C) — a GradeNotas segue editando em estado local.
-export default function TurmaClient({ turma, totais }: { turma: Turma; totais?: TotaisMap }) {
+export default function TurmaClient({
+  turma,
+  totais,
+  frequencias,
+}: {
+  turma: Turma;
+  totais?: TotaisMap;
+  // Frequência calculada (respostas validadas) por aluno/área — somente leitura.
+  frequencias?: FrequenciasGrade;
+}) {
   const [busca, setBusca] = useState("");
   const [aba, setAba] = useState<"alunos" | "notas">("alunos");
 
@@ -58,7 +67,9 @@ export default function TurmaClient({ turma, totais }: { turma: Turma; totais?: 
         </button>
       </div>
 
-      {aba === "notas" && <GradeNotas turma={turma} totais={totais} />}
+      {aba === "notas" && (
+        <GradeNotas turma={turma} totais={totais} frequencias={frequencias} />
+      )}
 
       {aba === "alunos" && (
         <>

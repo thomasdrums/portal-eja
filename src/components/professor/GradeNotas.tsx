@@ -28,7 +28,12 @@ import {
   type SituacaoCompetencia,
 } from "@/lib/regras-notas";
 import type { TotaisMap } from "@/lib/queries/notas";
+import type { FrequenciaPorAreaConfig } from "@/lib/queries/frequencia";
 import { salvarNotasAction } from "@/lib/actions/notas";
+
+// Frequência CALCULADA por aluno e área (alunoId → área → resumo). Nunca é
+// digitada: vem das respostas validadas (src/lib/queries/frequencia.ts).
+export type FrequenciasGrade = Record<string, FrequenciaPorAreaConfig>;
 
 // ── Geometria das colunas congeladas (à esquerda) ────────────
 const RA_W = 92;
@@ -93,12 +98,16 @@ export function GradeNotas({
   turma,
   readOnly = false,
   totais,
+  frequencias,
 }: {
   turma: Turma;
   // Modo somente leitura (Coordenação): vê todas as áreas, sem editar.
   readOnly?: boolean;
   // Totais de habilidades por competência vindos do banco. Sem isso, cai no config.
   totais?: TotaisMap;
+  // Frequência calculada por aluno/área. Sem isso, a situação da área não pode
+  // ser "Aprovado" (aprovar exige frequência de 100%).
+  frequencias?: FrequenciasGrade;
 }) {
   const { data: session } = useSession();
   const role = session?.user?.role ?? "PROFESSOR";
@@ -267,7 +276,10 @@ export function GradeNotas({
           {!readOnly && areaEditavel && (
             <div className="flex items-start gap-2 rounded-lg border border-[#D9D9D9] bg-[#F9FAFB] px-4 py-2.5 text-xs text-[#4B5563]">
               <Info size={14} className="mt-0.5 shrink-0 text-[#9CA3AF]" />
-              As notas são salvas no banco ao clicar em <strong>Salvar notas</strong>.
+              As notas são salvas no banco ao clicar em <strong>Salvar notas</strong>. A coluna{" "}
+              <strong>Freq.</strong> é calculada a partir das respostas validadas e não é digitada;
+              a área só fica <strong>Aprovado</strong> com todas as competências aprovadas e 100% de
+              frequência.
             </div>
           )}
 
@@ -313,6 +325,14 @@ export function GradeNotas({
                   <th
                     className="border-b border-l-2 border-l-[#007A33] border-b-[#007A33] bg-[#009640] px-2 py-2 text-center text-[11px] font-semibold text-white"
                     rowSpan={2}
+                    title="Frequência da área: respostas validadas ÷ aulas exigidas"
+                  >
+                    Freq.
+                  </th>
+
+                  <th
+                    className="border-b border-l-2 border-l-[#007A33] border-b-[#007A33] bg-[#009640] px-2 py-2 text-center text-[11px] font-semibold text-white"
+                    rowSpan={2}
                   >
                     Situação
                   </th>
@@ -338,7 +358,7 @@ export function GradeNotas({
                 {alunosFiltrados.length === 0 ? (
                   <tr>
                     <td
-                      colSpan={3 + comps.length * (CAMPOS.length + 1) + 1}
+                      colSpan={3 + comps.length * (CAMPOS.length + 1) + 2}
                       className="px-5 py-8 text-center text-sm text-[#4B5563]"
                     >
                       Nenhum aluno encontrado.
@@ -347,11 +367,14 @@ export function GradeNotas({
                 ) : (
                   alunosFiltrados.map((aluno) => {
                     const notasAluno = grade[aluno.id][notaArea];
+                    // Frequência real da área (null = não informada → não aprova).
+                    const freqArea = frequencias?.[aluno.id]?.[notaArea];
                     const sit = situacaoArea(
                       comps.map((comp) => ({
                         campos: notasAluno[comp],
                         total: getTotal(notaArea, comp),
                       })),
+                      freqArea?.percentual ?? null,
                     );
                     const status = statusMap[aluno.id];
 
@@ -418,17 +441,51 @@ export function GradeNotas({
                           );
                         })}
 
-                        {/* Situação da área */}
-                        <td className="border-b border-l-2 border-l-[#E5E7EB] border-b-[#E5E7EB] px-2 py-1.5 text-center">
+                        {/* Frequência calculada da área (somente leitura) */}
+                        <td
+                          className="border-b border-l-2 border-l-[#E5E7EB] border-b-[#E5E7EB] px-2 py-1.5 text-center"
+                          title={
+                            freqArea
+                              ? `${freqArea.presencas} de ${freqArea.totalExigido} aula(s) exigida(s)`
+                              : "Frequência não disponível"
+                          }
+                        >
                           <span
                             className={`rounded px-2 py-0.5 text-[10px] font-bold ${
-                              sit === "Aprovado"
-                                ? "bg-[#EAF6EE] text-[#007A33]"
-                                : "bg-amber-50 text-amber-700"
+                              !freqArea
+                                ? "bg-gray-50 text-gray-400"
+                                : freqArea.semExigencia
+                                  ? "bg-[#EAF6EE] text-[#007A33]"
+                                  : freqArea.atingiuMinimo
+                                    ? "bg-[#EAF6EE] text-[#007A33]"
+                                    : "bg-red-50 text-red-600"
                             }`}
                           >
-                            {sit}
+                            {!freqArea ? "—" : freqArea.semExigencia ? "Disp." : `${freqArea.percentual}%`}
                           </span>
+                        </td>
+
+                        {/* Situação da área (notas + frequência) */}
+                        <td className="border-b border-l-2 border-l-[#E5E7EB] border-b-[#E5E7EB] px-2 py-1.5 text-center">
+                          {!frequencias ? (
+                            // Sem frequência não dá para afirmar aprovação nesta tela.
+                            <span
+                              className="rounded bg-gray-50 px-2 py-0.5 text-[10px] font-bold text-gray-400"
+                              title="Frequência não disponível nesta tela"
+                            >
+                              —
+                            </span>
+                          ) : (
+                            <span
+                              className={`rounded px-2 py-0.5 text-[10px] font-bold ${
+                                sit === "Aprovado"
+                                  ? "bg-[#EAF6EE] text-[#007A33]"
+                                  : "bg-amber-50 text-amber-700"
+                              }`}
+                            >
+                              {sit}
+                            </span>
+                          )}
                         </td>
                       </tr>
                     );

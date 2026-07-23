@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
-import { Prisma, type TipoAula } from "@prisma/client";
+import { Prisma, type TipoAula, type StatusResposta } from "@prisma/client";
+import { competenciaCertificada } from "@/lib/regras-notas";
 
 export type ResultadoAcao = { ok: boolean; message: string };
 
@@ -59,6 +60,15 @@ function fmtDataLabel(d: Date): string {
   const dd = String(d.getUTCDate()).padStart(2, "0");
   const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
   return `${dd}/${mm}/${d.getUTCFullYear()}`;
+}
+
+// Data + hora local, para carimbar envio/validação nas respostas.
+function fmtDataHoraLabel(d: Date): string {
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const hh = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return `${dd}/${mm}/${d.getFullYear()} às ${hh}:${mi}`;
 }
 
 function fmtDataInput(d: Date): string {
@@ -410,4 +420,492 @@ async function garantirAcesso(
     return { ok: false, message: "Você só pode alterar as aulas que cadastrou." };
   }
   return { ok: true, message: "" };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TELA DO ALUNO (lista única + responder pergunta)
+// ════════════════════════════════════════════════════════════════════════════
+
+export type RespostaAlunoView = {
+  status: StatusResposta;
+  texto: string;
+  motivoRecusa: string | null;
+};
+
+export type AulaAlunoRow = {
+  id: string;
+  tipo: TipoAula;
+  titulo: string;
+  dataLabel: string;
+  youtubeUrl: string;
+  areaNome: string | null;
+  competenciaCodigo: string | null;
+  pergunta: string | null;
+  dispensada: boolean; // AREA cuja competência o aluno já certificou
+  resposta: RespostaAlunoView | null;
+};
+
+export type AulasAlunoResult = {
+  temAluno: boolean; // conta vinculada a um cadastro de aluno
+  temTurma: boolean; // aluno tem turma (necessário para ver aulas)
+  aulas: AulaAlunoRow[];
+};
+
+// A competência CERTIFICADA dispensa as aulas — regra única em regras-notas.ts
+// (a mesma usada pelo cálculo de frequência).
+const estaCertificada = competenciaCertificada;
+
+// Lista as aulas visíveis para o aluno da sessão, em ordem cronológica (mais recente primeiro).
+// Traz a resposta do próprio aluno (se houver) e marca dispensa por certificação.
+export async function listarAulasDoAluno(
+  userId: string | undefined,
+): Promise<AulasAlunoResult> {
+  if (!userId) return { temAluno: false, temTurma: false, aulas: [] };
+
+  const aluno = await prisma.aluno.findUnique({
+    where: { userId },
+    select: { id: true, turmaId: true },
+  });
+  if (!aluno) return { temAluno: false, temTurma: false, aulas: [] };
+  if (!aluno.turmaId) return { temAluno: true, temTurma: false, aulas: [] };
+
+  // Aulas da turma do aluno OU publicadas para todas (turmaId null).
+  const aulas = await prisma.aulaGravada.findMany({
+    where: { OR: [{ turmaId: aluno.turmaId }, { turmaId: null }] },
+    orderBy: [{ data: "desc" }, { createdAt: "desc" }],
+    select: {
+      id: true,
+      tipo: true,
+      titulo: true,
+      data: true,
+      youtubeUrl: true,
+      pergunta: true,
+      area: { select: { nome: true } },
+      competenciaId: true,
+      competencia: { select: { codigo: true, habilidades: true } },
+      respostas: {
+        where: { alunoId: aluno.id },
+        select: { status: true, texto: true, motivoRecusa: true },
+      },
+    },
+  });
+
+  // Notas (certificação) das competências das aulas de área — para calcular a dispensa.
+  const compIds = aulas
+    .filter((a) => a.tipo === "AREA" && a.competenciaId)
+    .map((a) => a.competenciaId as string);
+  const notas = compIds.length
+    ? await prisma.nota.findMany({
+        where: { alunoId: aluno.id, competenciaId: { in: compIds } },
+        select: { competenciaId: true, certificacao: true },
+      })
+    : [];
+  const certPorComp = new Map(notas.map((n) => [n.competenciaId, n.certificacao]));
+
+  const rows: AulaAlunoRow[] = aulas.map((a) => {
+    let dispensada = false;
+    if (a.tipo === "AREA" && a.competenciaId && a.competencia) {
+      const cert = certPorComp.get(a.competenciaId) ?? null;
+      dispensada = estaCertificada(cert, a.competencia.habilidades);
+    }
+    const r = a.respostas[0];
+    return {
+      id: a.id,
+      tipo: a.tipo,
+      titulo: a.titulo,
+      dataLabel: fmtDataLabel(a.data),
+      youtubeUrl: a.youtubeUrl,
+      areaNome: a.area?.nome ?? null,
+      competenciaCodigo: a.competencia?.codigo ?? null,
+      pergunta: a.pergunta,
+      dispensada,
+      resposta: r ? { status: r.status, texto: r.texto, motivoRecusa: r.motivoRecusa } : null,
+    };
+  });
+
+  return { temAluno: true, temTurma: true, aulas: rows };
+}
+
+// Envia (ou reenvia) a resposta do aluno da sessão a uma aula. Upsert por (alunoId, aulaId).
+// Segurança: o aluno vem SEMPRE da sessão; nunca de um id do cliente.
+export async function responderAula(
+  aulaId: string,
+  texto: string,
+  userId: string | undefined,
+): Promise<ResultadoAcao> {
+  if (!userId) return { ok: false, message: "Sessão expirada. Faça login novamente." };
+
+  const aluno = await prisma.aluno.findUnique({
+    where: { userId },
+    select: { id: true, turmaId: true },
+  });
+  if (!aluno) return { ok: false, message: "Sua conta não está vinculada a um cadastro de aluno." };
+
+  const txt = texto.trim();
+  if (!txt) return { ok: false, message: "Escreva sua resposta antes de enviar." };
+
+  const aula = await prisma.aulaGravada.findUnique({
+    where: { id: aulaId },
+    select: {
+      id: true,
+      tipo: true,
+      turmaId: true,
+      competenciaId: true,
+      competencia: { select: { habilidades: true } },
+    },
+  });
+  if (!aula) return { ok: false, message: "Aula não encontrada." };
+
+  // A aula precisa estar publicada para a turma do aluno (dele ou "todas").
+  if (aula.turmaId !== null && aula.turmaId !== aluno.turmaId) {
+    return { ok: false, message: "Esta aula não está disponível para a sua turma." };
+  }
+
+  // Aula geral não tem pergunta.
+  if (aula.tipo === "GERAL") {
+    return { ok: false, message: "Esta aula é informativa e não tem pergunta." };
+  }
+
+  // Dispensa por certificação (só AREA).
+  if (aula.tipo === "AREA" && aula.competenciaId && aula.competencia) {
+    const nota = await prisma.nota.findUnique({
+      where: { alunoId_competenciaId: { alunoId: aluno.id, competenciaId: aula.competenciaId } },
+      select: { certificacao: true },
+    });
+    if (estaCertificada(nota?.certificacao ?? null, aula.competencia.habilidades)) {
+      return { ok: false, message: "Você está dispensado desta aula (competência certificada)." };
+    }
+  }
+
+  // Resposta já validada trava a edição.
+  const existente = await prisma.respostaAula.findUnique({
+    where: { alunoId_aulaId: { alunoId: aluno.id, aulaId: aula.id } },
+    select: { status: true },
+  });
+  if (existente?.status === "VALIDADA") {
+    return { ok: false, message: "Sua resposta já foi validada e não pode mais ser alterada." };
+  }
+
+  // Cria ou reenvia: sempre volta para PENDENTE e limpa dados de validação/recusa.
+  await prisma.respostaAula.upsert({
+    where: { alunoId_aulaId: { alunoId: aluno.id, aulaId: aula.id } },
+    update: {
+      texto: txt,
+      status: "PENDENTE",
+      motivoRecusa: null,
+      validadaEm: null,
+      validadaPorId: null,
+    },
+    create: { texto: txt, status: "PENDENTE", alunoId: aluno.id, aulaId: aula.id },
+  });
+
+  return { ok: true, message: "Resposta enviada. Aguarde a validação do professor." };
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TELA DO PROFESSOR (validar / recusar as respostas dos alunos)
+// ════════════════════════════════════════════════════════════════════════════
+
+export type RespostaValidacaoRow = {
+  id: string;
+  status: StatusResposta;
+  texto: string;
+  motivoRecusa: string | null;
+  enviadaEmLabel: string; // 1º envio
+  reenviadaEmLabel: string | null; // preenchido quando o aluno respondeu de novo
+  validadaEmLabel: string | null; // data da validação/recusa
+  validadaPorNome: string | null;
+  alunoNome: string;
+  alunoRa: string;
+  turmaId: string | null;
+  turmaNome: string;
+  aulaId: string;
+  aulaTitulo: string;
+  aulaTipo: TipoAula;
+  aulaDataLabel: string;
+  areaNome: string | null;
+  competenciaCodigo: string | null;
+  pergunta: string | null;
+};
+
+export type RespostasValidacaoResult = {
+  podeValidar: boolean; // false quando a conta não é professor nem coordenação
+  respostas: RespostaValidacaoRow[];
+  aulas: { id: string; titulo: string }[]; // opções do filtro por aula
+  turmas: { id: string; nome: string }[]; // opções do filtro por turma
+};
+
+// Respostas visíveis para quem está logado: o professor vê as das SUAS aulas;
+// a coordenação vê todas. Ordena por envio mais recente primeiro.
+function whereRespostasVisiveis(
+  professorId: string | null,
+  isCoordenacao: boolean,
+): Prisma.RespostaAulaWhereInput {
+  return isCoordenacao ? {} : { aula: { professorId } };
+}
+
+export async function listarRespostasParaValidacao(
+  userId: string | undefined,
+  isCoordenacao: boolean,
+): Promise<RespostasValidacaoResult> {
+  const vazio: RespostasValidacaoResult = {
+    podeValidar: false,
+    respostas: [],
+    aulas: [],
+    turmas: [],
+  };
+  if (!userId) return vazio;
+
+  const professor = isCoordenacao ? null : await resolverProfessor(userId);
+  if (!isCoordenacao && !professor) return vazio;
+
+  const respostas = await prisma.respostaAula.findMany({
+    where: whereRespostasVisiveis(professor?.id ?? null, isCoordenacao),
+    orderBy: [{ createdAt: "desc" }],
+    select: {
+      id: true,
+      status: true,
+      texto: true,
+      motivoRecusa: true,
+      createdAt: true,
+      updatedAt: true,
+      validadaEm: true,
+      validadaPor: { select: { nome: true } },
+      aluno: {
+        select: {
+          nome: true,
+          ra: true,
+          turmaId: true,
+          turma: { select: { nome: true } },
+        },
+      },
+      aula: {
+        select: {
+          id: true,
+          titulo: true,
+          tipo: true,
+          data: true,
+          pergunta: true,
+          area: { select: { nome: true } },
+          competencia: { select: { codigo: true } },
+        },
+      },
+    },
+  });
+
+  const rows: RespostaValidacaoRow[] = respostas.map((r) => {
+    // O reenvio (Etapa 3) altera o texto sem mexer no createdAt: só marcamos
+    // "reenviada" enquanto está PENDENTE, para o professor saber que é texto novo.
+    const houveEdicao = r.updatedAt.getTime() - r.createdAt.getTime() > 1000;
+    return {
+      id: r.id,
+      status: r.status,
+      texto: r.texto,
+      motivoRecusa: r.motivoRecusa,
+      enviadaEmLabel: fmtDataHoraLabel(r.createdAt),
+      reenviadaEmLabel:
+        r.status === "PENDENTE" && houveEdicao ? fmtDataHoraLabel(r.updatedAt) : null,
+      validadaEmLabel: r.validadaEm ? fmtDataHoraLabel(r.validadaEm) : null,
+      validadaPorNome: r.validadaPor?.nome ?? null,
+      alunoNome: r.aluno.nome,
+      alunoRa: r.aluno.ra ?? "—",
+      turmaId: r.aluno.turmaId,
+      turmaNome: r.aluno.turma?.nome ?? "Sem turma",
+      aulaId: r.aula.id,
+      aulaTitulo: r.aula.titulo,
+      aulaTipo: r.aula.tipo,
+      aulaDataLabel: fmtDataLabel(r.aula.data),
+      areaNome: r.aula.area?.nome ?? null,
+      competenciaCodigo: r.aula.competencia?.codigo ?? null,
+      pergunta: r.aula.pergunta,
+    };
+  });
+
+  // Opções dos filtros: só o que aparece na lista (evita filtro que não acha nada).
+  const aulasMap = new Map<string, string>();
+  const turmasMap = new Map<string, string>();
+  for (const r of rows) {
+    aulasMap.set(r.aulaId, r.aulaTitulo);
+    if (r.turmaId) turmasMap.set(r.turmaId, r.turmaNome);
+  }
+
+  return {
+    podeValidar: true,
+    respostas: rows,
+    aulas: [...aulasMap].map(([id, titulo]) => ({ id, titulo })),
+    turmas: [...turmasMap]
+      .map(([id, nome]) => ({ id, nome }))
+      .sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR")),
+  };
+}
+
+// Contador de pendentes (badge da navegação e do painel do professor).
+export async function contarRespostasPendentes(
+  userId: string | undefined,
+  isCoordenacao: boolean,
+): Promise<number> {
+  if (!userId) return 0;
+
+  const professor = isCoordenacao ? null : await resolverProfessor(userId);
+  if (!isCoordenacao && !professor) return 0;
+
+  return prisma.respostaAula.count({
+    where: {
+      status: "PENDENTE",
+      ...whereRespostasVisiveis(professor?.id ?? null, isCoordenacao),
+    },
+  });
+}
+
+// Confere se o usuário pode mexer NESTA resposta (dono da aula ou coordenação).
+// O id do validador vem sempre da sessão — nunca do cliente.
+type AcessoResposta =
+  | { ok: false; message: string }
+  | { ok: true; validadaPorId: string | null; status: StatusResposta };
+
+async function garantirAcessoResposta(
+  respostaId: string,
+  userId: string,
+  isCoordenacao: boolean,
+): Promise<AcessoResposta> {
+  const resposta = await prisma.respostaAula.findUnique({
+    where: { id: respostaId },
+    select: { id: true, status: true, aula: { select: { professorId: true } } },
+  });
+  if (!resposta) return { ok: false, message: "Resposta não encontrada." };
+
+  if (isCoordenacao) {
+    // Coordenação não tem cadastro de professor: validadaPorId fica nulo.
+    return { ok: true, validadaPorId: null, status: resposta.status };
+  }
+
+  const professor = await resolverProfessor(userId);
+  if (!professor) {
+    return { ok: false, message: "Sua conta não está vinculada a um cadastro de professor." };
+  }
+  if (resposta.aula.professorId !== professor.id) {
+    return { ok: false, message: "Você só pode validar respostas das aulas que cadastrou." };
+  }
+  return { ok: true, validadaPorId: professor.id, status: resposta.status };
+}
+
+// ── VALIDAR ───────────────────────────────────────────────────────────────────
+// Marca a resposta como VALIDADA. É isso que passará a contar presença (Etapa 5).
+export async function validarResposta(
+  respostaId: string,
+  userId: string | undefined,
+  isCoordenacao: boolean,
+): Promise<ResultadoAcao> {
+  if (!userId) return { ok: false, message: "Sessão expirada. Faça login novamente." };
+
+  const acesso = await garantirAcessoResposta(respostaId, userId, isCoordenacao);
+  if (!acesso.ok) return acesso;
+  if (acesso.status === "VALIDADA") return { ok: true, message: "Esta resposta já estava validada." };
+
+  await prisma.respostaAula.update({
+    where: { id: respostaId },
+    data: {
+      status: "VALIDADA",
+      validadaEm: new Date(),
+      validadaPorId: acesso.validadaPorId,
+      motivoRecusa: null,
+    },
+  });
+  return { ok: true, message: "Resposta validada." };
+}
+
+// ── VALIDAR EM LOTE ───────────────────────────────────────────────────────────
+// A permissão vai dentro do WHERE: ids de outro professor simplesmente não são
+// atualizados, mesmo que cheguem forjados do cliente.
+export async function validarRespostasEmLote(
+  respostaIds: string[],
+  userId: string | undefined,
+  isCoordenacao: boolean,
+): Promise<ResultadoAcao> {
+  if (!userId) return { ok: false, message: "Sessão expirada. Faça login novamente." };
+
+  const ids = [...new Set(respostaIds)].filter(Boolean);
+  if (ids.length === 0) return { ok: false, message: "Selecione ao menos uma resposta." };
+
+  const professor = isCoordenacao ? null : await resolverProfessor(userId);
+  if (!isCoordenacao && !professor) {
+    return { ok: false, message: "Sua conta não está vinculada a um cadastro de professor." };
+  }
+
+  const res = await prisma.respostaAula.updateMany({
+    where: {
+      id: { in: ids },
+      status: "PENDENTE",
+      ...whereRespostasVisiveis(professor?.id ?? null, isCoordenacao),
+    },
+    data: {
+      status: "VALIDADA",
+      validadaEm: new Date(),
+      validadaPorId: professor?.id ?? null,
+      motivoRecusa: null,
+    },
+  });
+
+  if (res.count === 0) {
+    return { ok: false, message: "Nenhuma das respostas selecionadas pôde ser validada." };
+  }
+  const ignoradas = ids.length - res.count;
+  return {
+    ok: true,
+    message:
+      res.count === 1
+        ? "1 resposta validada."
+        : `${res.count} respostas validadas.` +
+          (ignoradas > 0 ? ` (${ignoradas} ignorada${ignoradas > 1 ? "s" : ""}.)` : ""),
+  };
+}
+
+// ── RECUSAR ───────────────────────────────────────────────────────────────────
+// Exige motivo. O aluno vê o motivo e pode responder de novo (volta para PENDENTE).
+export async function recusarResposta(
+  respostaId: string,
+  motivo: string,
+  userId: string | undefined,
+  isCoordenacao: boolean,
+): Promise<ResultadoAcao> {
+  if (!userId) return { ok: false, message: "Sessão expirada. Faça login novamente." };
+
+  const motivoTrim = motivo.trim();
+  if (!motivoTrim) return { ok: false, message: "Escreva o motivo da recusa para o aluno." };
+
+  const acesso = await garantirAcessoResposta(respostaId, userId, isCoordenacao);
+  if (!acesso.ok) return acesso;
+
+  await prisma.respostaAula.update({
+    where: { id: respostaId },
+    data: {
+      status: "RECUSADA",
+      motivoRecusa: motivoTrim,
+      validadaEm: new Date(),
+      validadaPorId: acesso.validadaPorId,
+    },
+  });
+  return { ok: true, message: "Resposta recusada. O aluno poderá responder de novo." };
+}
+
+// ── DESFAZER VALIDAÇÃO ────────────────────────────────────────────────────────
+// Volta para PENDENTE (validou por engano). Só faz sentido a partir de VALIDADA.
+export async function desfazerValidacao(
+  respostaId: string,
+  userId: string | undefined,
+  isCoordenacao: boolean,
+): Promise<ResultadoAcao> {
+  if (!userId) return { ok: false, message: "Sessão expirada. Faça login novamente." };
+
+  const acesso = await garantirAcessoResposta(respostaId, userId, isCoordenacao);
+  if (!acesso.ok) return acesso;
+  if (acesso.status !== "VALIDADA") {
+    return { ok: false, message: "Só é possível desfazer uma resposta que está validada." };
+  }
+
+  await prisma.respostaAula.update({
+    where: { id: respostaId },
+    data: { status: "PENDENTE", validadaEm: null, validadaPorId: null, motivoRecusa: null },
+  });
+  return { ok: true, message: "Validação desfeita. A resposta voltou para pendente." };
 }

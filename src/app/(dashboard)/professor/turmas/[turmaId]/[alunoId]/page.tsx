@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { carregarAlunoDoProfessor, type AcessoTurma } from "@/lib/queries/professor-turmas";
+import { calcularFrequenciaDoAluno } from "@/lib/queries/frequencia";
 import AlunoDetalheClient from "./aluno-client";
 
 export const dynamic = "force-dynamic";
@@ -49,5 +50,10 @@ export default async function AlunoPage({
     return <AvisoAcesso tipo={acesso} turmaId={turmaId} />;
   }
 
-  return <AlunoDetalheClient aluno={aluno} turmaId={turmaId} />;
+  // Frequência calculada na hora (respostas validadas) — nunca vem gravada.
+  const frequencia = await calcularFrequenciaDoAluno(aluno.id);
+
+  return (
+    <AlunoDetalheClient aluno={aluno} turmaId={turmaId} frequencia={frequencia} />
+  );
 }

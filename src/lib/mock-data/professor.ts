@@ -106,16 +106,8 @@ export const AREAS_CONFIG = [
 
 export type AreaId = (typeof AREAS_CONFIG)[number]["id"];
 
-// Áreas de frequência (inclui Interárea)
-export const FREQ_AREAS_CONFIG = [
-  { id: "matematica" as const,       nome: "Matemática"            },
-  { id: "linguagens" as const,       nome: "Linguagens"            },
-  { id: "cienciasNatureza" as const, nome: "Ciências da Natureza"  },
-  { id: "cienciasHumanas" as const,  nome: "Ciências Humanas"      },
-  { id: "interarea" as const,        nome: "Interárea"             },
-] as const;
-
-export type FreqAreaId = (typeof FREQ_AREAS_CONFIG)[number]["id"];
+// (FREQ_AREAS_CONFIG/FreqAreaId foram removidos na Etapa 5: a frequência não é
+//  mais digitada por área — é calculada em src/lib/queries/frequencia.ts.)
 
 // Mapeamento disciplina (session) → AreaId
 export const DISCIPLINA_TO_AREA_ID: Record<string, AreaId> = {
@@ -133,13 +125,7 @@ export function notasEditaveis(disciplina: string | null | undefined, role: stri
   return id ? [id] : [];
 }
 
-// Retorna as áreas de FREQUÊNCIA que o professor pode editar
-export function freqEditaveis(disciplina: string | null | undefined, role: string): FreqAreaId[] {
-  if (role === "COORDENACAO") return FREQ_AREAS_CONFIG.map((a) => a.id);
-  if (!disciplina) return ["interarea"];
-  const id = DISCIPLINA_TO_AREA_ID[disciplina];
-  return (id ? [id, "interarea"] : ["interarea"]) as FreqAreaId[];
-}
+// (freqEditaveis foi removido na Etapa 5: ninguém edita frequência na mão.)
 
 // Retorna as áreas de AULAS visíveis/gerenciáveis
 export function aulasVisiveis(disciplina: string | null | undefined, role: string): string[] {

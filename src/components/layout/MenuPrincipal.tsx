@@ -19,6 +19,7 @@ const navByRole: Record<string, NavItem[]> = {
     { href: "/professor",            label: "Visão Geral",   exact: true },
     { href: "/professor/turmas",     label: "Turmas" },
     { href: "/professor/aulas",      label: "Aulas Gravadas" },
+    { href: "/professor/respostas",  label: "Respostas" },
     { href: "/professor/relatorios", label: "Relatórios" },
   ],
   COORDENACAO: [
@@ -35,13 +36,16 @@ const navByRole: Record<string, NavItem[]> = {
 /**
  * mobileOnly=true → barra horizontal oculta em md+; só o hamburger aparece no mobile.
  * Usado para coordenação, onde o sidebar cuida da nav em desktop.
+ * badges: href → número (ex.: respostas pendentes). Zero não aparece.
  */
 export function MenuPrincipal({
   role,
   mobileOnly = false,
+  badges = {},
 }: {
   role: string;
   mobileOnly?: boolean;
+  badges?: Record<string, number>;
 }) {
   const [open, setOpen] = useState(false);
   const pathname = usePathname();
@@ -54,6 +58,17 @@ export function MenuPrincipal({
   }
 
   const activeLabel = items.find(isActive)?.label;
+  const totalBadges = Object.values(badges).reduce((s, n) => s + n, 0);
+
+  function Badge({ href }: { href: string }) {
+    const n = badges[href] ?? 0;
+    if (n <= 0) return null;
+    return (
+      <span className="ml-1.5 inline-flex min-w-[18px] items-center justify-center rounded-full bg-[#E11D48] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+        {n > 99 ? "99+" : n}
+      </span>
+    );
+  }
 
   return (
     // Quando mobileOnly=true, o componente inteiro some em md+
@@ -67,13 +82,14 @@ export function MenuPrincipal({
               <Link
                 key={item.href}
                 href={item.href}
-                className={`shrink-0 border-b-2 px-4 py-3.5 text-sm font-medium whitespace-nowrap transition-colors ${
+                className={`flex shrink-0 items-center border-b-2 px-4 py-3.5 text-sm font-medium whitespace-nowrap transition-colors ${
                   active
                     ? "border-[#009640] text-[#009640]"
                     : "border-transparent text-[#4B5563] hover:bg-[#EAF6EE] hover:text-[#009640]"
                 }`}
               >
                 {item.label}
+                <Badge href={item.href} />
               </Link>
             );
           })}
@@ -89,6 +105,11 @@ export function MenuPrincipal({
         >
           {open ? <X size={18} /> : <Menu size={18} />}
           Menu
+          {!open && totalBadges > 0 && (
+            <span className="inline-flex min-w-[18px] items-center justify-center rounded-full bg-[#E11D48] px-1.5 py-0.5 text-[10px] font-bold leading-none text-white">
+              {totalBadges > 99 ? "99+" : totalBadges}
+            </span>
+          )}
         </button>
         {activeLabel && (
           <span className="text-xs font-medium text-[#9CA3AF]">{activeLabel}</span>
@@ -105,13 +126,14 @@ export function MenuPrincipal({
                 key={item.href}
                 href={item.href}
                 onClick={() => setOpen(false)}
-                className={`block border-l-4 px-6 py-3 text-sm font-medium transition-colors ${
+                className={`flex items-center border-l-4 px-6 py-3 text-sm font-medium transition-colors ${
                   active
                     ? "border-[#009640] bg-[#EAF6EE] text-[#009640]"
                     : "border-transparent text-[#4B5563] hover:bg-[#F5F5F5]"
                 }`}
               >
                 {item.label}
+                <Badge href={item.href} />
               </Link>
             );
           })}

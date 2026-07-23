@@ -3,6 +3,7 @@ import { ChevronLeft } from "lucide-react";
 import { auth } from "@/lib/auth";
 import { carregarTurmaDoProfessor, type AcessoTurma } from "@/lib/queries/professor-turmas";
 import { carregarNotasGradeTurma } from "@/lib/queries/notas";
+import { carregarFrequenciaGradeTurma } from "@/lib/queries/frequencia";
 import TurmaClient from "./turma-client";
 
 export const dynamic = "force-dynamic";
@@ -50,9 +51,12 @@ export default async function TurmaPage({
     return <AvisoAcesso tipo={acesso} />;
   }
 
-  // Etapa B: lê as notas REAIS do banco e usa como estado inicial da grade.
-  // (O salvar continua local — Etapa C.)
-  const { notasPorAluno, totais } = await carregarNotasGradeTurma(turma.id);
+  // Notas REAIS do banco (estado inicial da grade) + frequência CALCULADA
+  // (respostas validadas ÷ aulas exigidas) de cada aluno da turma.
+  const [{ notasPorAluno, totais }, frequencias] = await Promise.all([
+    carregarNotasGradeTurma(turma.id),
+    carregarFrequenciaGradeTurma(turma.id),
+  ]);
   const turmaComNotas = {
     ...turma,
     alunos: turma.alunos.map((a) => ({
@@ -61,5 +65,5 @@ export default async function TurmaPage({
     })),
   };
 
-  return <TurmaClient turma={turmaComNotas} totais={totais} />;
+  return <TurmaClient turma={turmaComNotas} totais={totais} frequencias={frequencias} />;
 }

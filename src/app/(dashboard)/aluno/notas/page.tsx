@@ -113,9 +113,21 @@ export default async function NotasPage() {
                       <tr className="border-t border-[#E5E7EB] bg-[#F9FAFB]">
                         <td className="px-5 py-2.5 text-xs text-[#4B5563]">Frequência por área</td>
                         <td colSpan={2} className="px-5 py-2.5 text-right">
-                          <span className="rounded bg-gray-100 px-2.5 py-0.5 text-xs font-semibold text-gray-500">
-                            em breve
-                          </span>
+                          {area.frequenciaSemExigencia ? (
+                            <span className="rounded bg-[#EAF6EE] px-2.5 py-0.5 text-xs font-semibold text-[#007A33]">
+                              Dispensado (competências certificadas)
+                            </span>
+                          ) : (
+                            <span
+                              className={`rounded px-2.5 py-0.5 text-xs font-bold ${
+                                area.frequenciaAtingida
+                                  ? "bg-[#EAF6EE] text-[#007A33]"
+                                  : "bg-red-50 text-red-600"
+                              }`}
+                            >
+                              {area.frequenciaPercentual}%
+                            </span>
+                          )}
                         </td>
                       </tr>
                     </tfoot>

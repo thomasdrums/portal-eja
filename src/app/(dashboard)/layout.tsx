@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { auth } from "@/lib/auth";
 import { Topbar } from "@/components/layout/Topbar";
 import { MenuPrincipal } from "@/components/layout/MenuPrincipal";
+import { contarRespostasPendentes } from "@/lib/queries/aulas";
 
 export default async function DashboardLayout({
   children,
@@ -26,10 +27,15 @@ export default async function DashboardLayout({
 
   /* ── PROFESSOR ── */
   if (role === "PROFESSOR") {
+    // Respostas esperando validação: vira o selo vermelho no menu.
+    const pendentes = await contarRespostasPendentes(session.user.id, false);
     return (
       <div className="min-h-screen bg-[#F5F5F5]">
         <Topbar name={name ?? "Professor"} email={email} role="PROFESSOR" />
-        <MenuPrincipal role="PROFESSOR" />
+        <MenuPrincipal
+          role="PROFESSOR"
+          badges={{ "/professor/respostas": pendentes }}
+        />
         <main className="px-4 py-6 md:px-6">{children}</main>
       </div>
     );

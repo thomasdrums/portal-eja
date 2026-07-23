@@ -38,6 +38,16 @@ export function minParaCertificar(total: number): number {
   return Math.floor(total / 2) + 1;
 }
 
+// Competência CERTIFICADA: o campo certificacao atingiu o mínimo para certificar.
+// Certificar DISPENSA as aulas da competência no cálculo de frequência
+// (aprovar por nota ≥ 60 NÃO dispensa). Regra única — usada em aulas.ts e frequencia.ts.
+export function competenciaCertificada(
+  certificacao: number | null,
+  habilidades: number,
+): boolean {
+  return certificacao != null && certificacao >= minParaCertificar(habilidades);
+}
+
 function preenchido(v: number | null): boolean {
   return v !== null;
 }
@@ -112,14 +122,19 @@ export function competenciaAprovada(
 
 export type SituacaoArea = "Aprovado" | "Em Processo";
 
-// e) Situação da área: "Aprovado" se TODAS as competências estiverem aprovadas.
+// e) Situação da área: "Aprovado" exige AS DUAS COISAS —
+//    todas as competências aprovadas E frequência ≥ FREQUENCIA_MINIMA_APROVACAO (100%).
+//    frequenciaPercentual = null significa "não sei a frequência" → não aprova.
+//    A frequência é sempre calculada (src/lib/queries/frequencia.ts), nunca digitada.
 export function situacaoArea(
   competencias: { campos: CamposCompetencia; total: number }[],
+  frequenciaPercentual: number | null,
 ): SituacaoArea {
-  // TODO: incluir frequência ≥ FREQUENCIA_MINIMA_APROVACAO (100%) nesta regra (Fase 2)
   if (competencias.length === 0) return "Em Processo";
   const todasAprovadas = competencias.every((c) =>
     competenciaAprovada(c.campos, c.total),
   );
-  return todasAprovadas ? "Aprovado" : "Em Processo";
+  if (!todasAprovadas) return "Em Processo";
+  if (frequenciaPercentual == null) return "Em Processo";
+  return frequenciaPercentual >= FREQUENCIA_MINIMA_APROVACAO ? "Aprovado" : "Em Processo";
 }

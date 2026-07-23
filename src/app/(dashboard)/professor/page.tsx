@@ -2,7 +2,8 @@ import Link from "next/link";
 import { auth } from "@/lib/auth";
 import { CardStat } from "@/components/dashboard/CardStat";
 import { listarTurmasDoProfessor } from "@/lib/queries/professor-turmas";
-import { Users, ExternalLink } from "lucide-react";
+import { contarRespostasPendentes } from "@/lib/queries/aulas";
+import { Users, ExternalLink, Clock } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -12,7 +13,10 @@ export default async function ProfessorDashboardPage() {
   const isCoordenacao = session?.user?.role === "COORDENACAO";
 
   // Turmas REAIS do professor logado (coordenação enxerga todas).
-  const turmas = await listarTurmasDoProfessor(session?.user?.id, isCoordenacao);
+  const [turmas, pendentes] = await Promise.all([
+    listarTurmasDoProfessor(session?.user?.id, isCoordenacao),
+    contarRespostasPendentes(session?.user?.id, isCoordenacao),
+  ]);
 
   const totalTurmas = turmas.length;
   const totalAlunos = turmas.reduce((s, t) => s + t.qtdAlunos, 0);
@@ -27,6 +31,27 @@ export default async function ProfessorDashboardPage() {
         </h1>
         <p className="mt-0.5 text-sm text-[#4B5563]">Painel do professor — Portal EJA SESI</p>
       </div>
+
+      {/* Respostas esperando validação */}
+      {pendentes > 0 && (
+        <Link
+          href="/professor/respostas"
+          className="flex items-center justify-between gap-3 rounded-lg border border-amber-200 bg-amber-50 px-5 py-4 transition hover:bg-amber-100"
+        >
+          <div className="flex items-center gap-3">
+            <Clock size={20} className="shrink-0 text-amber-700" />
+            <div>
+              <p className="text-sm font-semibold text-amber-900">
+                {pendentes} resposta{pendentes > 1 ? "s" : ""} aguardando validação
+              </p>
+              <p className="text-xs text-amber-800">
+                A presença do aluno só conta depois que você valida a resposta.
+              </p>
+            </div>
+          </div>
+          <span className="shrink-0 text-xs font-semibold text-amber-900 underline">Validar</span>
+        </Link>
+      )}
 
       {/* Indicadores */}
       <section>

@@ -35,6 +35,19 @@ export const COMPETENCIAS_CONFIG: Record<AreaConfigId, AreaCompetencias> = {
   },
 };
 
+// Ponte entre o id de área usado nas telas (config) e o slug da Area no banco.
+// Fonte única: notas, frequência e qualquer adaptador DB → tela usam estes mapas.
+export const AREA_SLUG_POR_CONFIG: Record<AreaConfigId, string> = {
+  matematica: "matematica",
+  linguagens: "linguagens",
+  cienciasNatureza: "ciencias-natureza",
+  cienciasHumanas: "ciencias-humanas",
+};
+
+export const AREA_CONFIG_POR_SLUG: Record<string, AreaConfigId> = Object.fromEntries(
+  Object.entries(AREA_SLUG_POR_CONFIG).map(([id, slug]) => [slug, id as AreaConfigId]),
+) as Record<string, AreaConfigId>;
+
 // Ordem padrão para exibição do seletor de áreas.
 export const AREA_CONFIG_ORDER: AreaConfigId[] = [
   "matematica",

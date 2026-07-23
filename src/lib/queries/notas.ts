@@ -4,28 +4,25 @@ import {
   CAMPOS_VAZIOS,
   mediaCompetencia,
   situacaoCompetencia,
+  FREQUENCIA_MINIMA_APROVACAO,
   type CamposCompetencia,
   type SituacaoCompetencia,
 } from "@/lib/regras-notas";
+import { calcularFrequenciaDoAluno } from "@/lib/queries/frequencia";
 import {
   AREA_CONFIG_ORDER,
   COMPETENCIAS_CONFIG,
+  AREA_SLUG_POR_CONFIG,
+  AREA_CONFIG_POR_SLUG,
   type AreaConfigId,
 } from "@/lib/competencias-config";
 import type { NotasGrade } from "@/lib/mock-data/professor";
 
 export type ResultadoAcao = { ok: boolean; message: string };
 
-// Mapa: id de área da grade (config) ↔ slug da Area no banco.
-const AREA_ID_TO_SLUG: Record<AreaConfigId, string> = {
-  matematica: "matematica",
-  linguagens: "linguagens",
-  cienciasNatureza: "ciencias-natureza",
-  cienciasHumanas: "ciencias-humanas",
-};
-const SLUG_TO_AREA_ID: Record<string, AreaConfigId> = Object.fromEntries(
-  Object.entries(AREA_ID_TO_SLUG).map(([id, slug]) => [slug, id as AreaConfigId]),
-) as Record<string, AreaConfigId>;
+// Mapa: id de área da grade (config) ↔ slug da Area no banco (fonte única no config).
+const AREA_ID_TO_SLUG = AREA_SLUG_POR_CONFIG;
+const SLUG_TO_AREA_ID = AREA_CONFIG_POR_SLUG;
 
 // Totais de habilidades por competência, vindos do BANCO: area(config id) → codigo → habilidades.
 export type TotaisMap = Record<string, Record<string, number>>;
@@ -277,6 +274,10 @@ export type AreaNotaAluno = {
   competencias: CompetenciaNotaAluno[];
   status: StatusAreaAluno;
   temNota: boolean; // há alguma nota (de competência) lançada na área?
+  // Frequência CALCULADA da área (respostas validadas ÷ aulas exigidas).
+  frequenciaPercentual: number;
+  frequenciaSemExigencia: boolean; // todas as competências certificadas
+  frequenciaAtingida: boolean; // ≥ FREQUENCIA_MINIMA_APROVACAO
 };
 
 export type NotasAlunoResult =
@@ -305,6 +306,7 @@ export async function carregarNotasDoAluno(
     where: { slug: { in: AREAS_NOTAS_SLUGS } },
     orderBy: { ordem: "asc" },
     select: {
+      slug: true,
       nome: true,
       competencias: {
         orderBy: { ordem: "asc" },
@@ -312,6 +314,10 @@ export async function carregarNotasDoAluno(
       },
     },
   });
+
+  // Frequência real do aluno (calculada), para o status da área e o rodapé da tabela.
+  const frequencia = await calcularFrequenciaDoAluno(aluno.id);
+  const freqPorSlug = new Map(frequencia.areas.map((a) => [a.slug, a]));
 
   // Notas do aluno nessas competências.
   const compIds = areas.flatMap((a) => a.competencias.map((c) => c.id));
@@ -341,7 +347,12 @@ export async function carregarNotasDoAluno(
       };
     });
 
-    // Status da área derivado das situações das competências (mesma regra da presença).
+    // Status da área: aprovar exige TODAS as competências aprovadas E frequência
+    // de 100% (mesma regra de situacaoArea, usada também pelo professor).
+    const freq = freqPorSlug.get(area.slug);
+    const frequenciaPercentual = freq?.percentual ?? 0;
+    const frequenciaAtingida = frequenciaPercentual >= FREQUENCIA_MINIMA_APROVACAO;
+
     const todasAprovadas = competencias.every((c) => c.situacao === "aprovado");
     const todasAtingiram = competencias.every(
       (c) => c.situacao === "aprovado" || c.situacao === "pendente_frequencia",
@@ -349,8 +360,8 @@ export async function carregarNotasDoAluno(
     const temPendFrequencia = competencias.some((c) => c.situacao === "pendente_frequencia");
 
     let status: StatusAreaAluno;
-    if (todasAprovadas) status = "aprovado";
-    else if (todasAtingiram && temPendFrequencia) status = "pendente_frequencia";
+    if (todasAprovadas && frequenciaAtingida) status = "aprovado";
+    else if (todasAprovadas || (todasAtingiram && temPendFrequencia)) status = "pendente_frequencia";
     else status = "em_processo";
 
     return {
@@ -358,6 +369,9 @@ export async function carregarNotasDoAluno(
       competencias,
       status,
       temNota: competencias.some((c) => c.situacao !== "vazio"),
+      frequenciaPercentual,
+      frequenciaSemExigencia: freq?.semExigencia ?? false,
+      frequenciaAtingida,
     };
   });
 
