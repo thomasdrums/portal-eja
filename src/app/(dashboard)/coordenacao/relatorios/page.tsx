@@ -7,6 +7,9 @@ import {
   BarChart2,
   CalendarCheck,
   Award,
+  Trophy,
+  MapPin,
+  ClipboardList,
 } from "lucide-react";
 
 // Índice dos relatórios da coordenação. Cada card leva a um relatório ligado ao banco.
@@ -46,6 +49,24 @@ const RELATORIOS = [
     Icon: Award,
     title: "Certificados",
     desc: "Histórico entregue, emissão e entrega",
+  },
+  {
+    href: "/coordenacao/relatorios/concluintes",
+    Icon: Trophy,
+    title: "Concluintes",
+    desc: "Alunos que concluíram as 4 áreas (calculado)",
+  },
+  {
+    href: "/coordenacao/relatorios/polo",
+    Icon: MapPin,
+    title: "Por Polo",
+    desc: "Alunos, turmas, frequência e concluintes por polo",
+  },
+  {
+    href: "/coordenacao/relatorios/notas",
+    Icon: ClipboardList,
+    title: "Notas",
+    desc: "Notas reais por área e competência",
   },
 ] as const;
 
