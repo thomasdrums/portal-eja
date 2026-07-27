@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import { carregarFrequenciaDoAlunoLogado } from "@/lib/queries/frequencia";
+import { historicoPendenteDoAlunoLogado } from "@/lib/queries/certificados";
 import AlunoDashboardClient from "./dashboard-client";
 
 // Depende da sessão e mostra a frequência calculada na hora.
@@ -7,7 +8,10 @@ export const dynamic = "force-dynamic";
 
 export default async function AlunoDashboardPage() {
   const session = await auth();
-  const dados = await carregarFrequenciaDoAlunoLogado(session?.user?.id);
+  const [dados, historicoPendente] = await Promise.all([
+    carregarFrequenciaDoAlunoLogado(session?.user?.id),
+    historicoPendenteDoAlunoLogado(session?.user?.id),
+  ]);
   const frequencia = dados.temAluno ? dados.frequencia : null;
 
   return (
@@ -16,6 +20,7 @@ export default async function AlunoDashboardPage() {
       turmaNome={frequencia?.turmaNome ?? null}
       temAluno={dados.temAluno}
       frequencia={frequencia}
+      historicoPendente={historicoPendente}
     />
   );
 }

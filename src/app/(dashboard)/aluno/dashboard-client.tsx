@@ -10,6 +10,7 @@ import {
   ChevronDown,
   ChevronUp,
   ChevronRight,
+  AlertTriangle,
 } from "lucide-react";
 import type { FrequenciaAluno } from "@/lib/queries/frequencia";
 import FrequenciaAlunoView from "./frequencia/frequencia-view";
@@ -26,11 +27,13 @@ export default function AlunoDashboardClient({
   turmaNome,
   temAluno,
   frequencia,
+  historicoPendente,
 }: {
   nome: string;
   turmaNome: string | null;
   temAluno: boolean;
   frequencia: FrequenciaAluno | null;
+  historicoPendente: boolean;
 }) {
   // Frequência é o único módulo que ainda abre aqui; Notas, Aulas e Solicitações
   // são páginas próprias ligadas ao banco (sem caminho paralelo com mock).
@@ -45,6 +48,18 @@ export default function AlunoDashboardClient({
         <h1 className="text-xl font-semibold text-gray-900">Bem-vindo, {primeiroNome}</h1>
         <p className="mt-0.5 text-sm text-[#4B5563]">{turmaNome ?? "Sem turma vinculada"}</p>
       </div>
+
+      {/* Alerta de histórico não entregue — lê o valor real do banco a cada carga. */}
+      {historicoPendente && (
+        <div className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-800">
+          <AlertTriangle size={18} className="mt-0.5 shrink-0 text-amber-600" />
+          <p>
+            <span className="font-semibold">Histórico escolar pendente. </span>
+            Você ainda não entregou seu histórico escolar original na escola do SESI. A entrega é
+            necessária para a emissão do seu certificado.
+          </p>
+        </div>
+      )}
 
       {!temAluno && (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-800">

@@ -129,8 +129,11 @@ model Aluno {
   dataMatricula       DateTime?
   dataConclusao       DateTime?
   historicoEntregue   Boolean       @default(false)
+  historicoEntregueEm   DateTime?
   certificadoEmitido  Boolean       @default(false)
+  certificadoEmitidoEm  DateTime?
   certificadoRecebido Boolean       @default(false)
+  certificadoEntregueEm DateTime?
   arquivado           Boolean       @default(false)
   arquivadoEm         DateTime?
   userId              String?       @unique
