@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/prisma";
+import type { Modalidade } from "@prisma/client";
 import type { ResultadoAcao } from "@/lib/queries/professores";
+import { modalidadeLabel } from "@/lib/turma-labels";
 
 export type { ResultadoAcao };
 
@@ -11,6 +13,10 @@ export type TurmaRow = {
   nome: string;
   poloId: string;
   poloNome: string;
+  codigo: string; // "" se vazio
+  modalidade: "" | Modalidade;
+  modalidadeLabel: string;
+  entrada: string; // ex.: "2026.2" ("" se vazio)
   ano: string; // Int? no banco → string na UI ("" se vazio)
   etapa: string; // etapaEnsino ("" se vazio)
   status: StatusUI;
@@ -21,6 +27,9 @@ export type TurmaRow = {
 export type NovaTurmaInput = {
   nome: string;
   poloId: string;
+  codigo: string;
+  modalidade: "" | Modalidade;
+  entrada: string;
   ano: string;
   etapaEnsino: string;
   status: StatusUI;
@@ -49,6 +58,10 @@ export async function listarTurmas(): Promise<TurmaRow[]> {
     nome: t.nome,
     poloId: t.poloId,
     poloNome: t.polo?.nome ?? "",
+    codigo: t.codigo ?? "",
+    modalidade: t.modalidade ?? "",
+    modalidadeLabel: modalidadeLabel(t.modalidade),
+    entrada: t.entrada ?? "",
     ano: t.ano != null ? String(t.ano) : "",
     etapa: t.etapaEnsino ?? "",
     status: t.status === "ENCERRADA" ? "encerrada" : "ativa",
@@ -57,23 +70,43 @@ export async function listarTurmas(): Promise<TurmaRow[]> {
   }));
 }
 
+// Erro do Prisma para código já usado por outra turma (unique @unique).
+function isCodigoDuplicado(e: unknown): boolean {
+  return (
+    typeof e === "object" &&
+    e !== null &&
+    "code" in e &&
+    (e as { code?: string }).code === "P2002"
+  );
+}
+
 export async function criarTurma(dados: NovaTurmaInput): Promise<ResultadoAcao> {
   const nome = dados.nome.trim();
   if (!nome) return { ok: false, message: "Nome da turma é obrigatório." };
   if (!dados.poloId) return { ok: false, message: "Selecione um polo." };
 
-  await prisma.turma.create({
-    data: {
-      nome,
-      poloId: dados.poloId,
-      ano: dados.ano ? parseInt(dados.ano, 10) : null,
-      etapaEnsino: dados.etapaEnsino || null,
-      status: dados.status === "encerrada" ? "ENCERRADA" : "EM_ANDAMENTO",
-      professores: dados.professorIds.length
-        ? { create: dados.professorIds.map((professorId) => ({ professorId })) }
-        : undefined,
-    },
-  });
+  const codigo = dados.codigo.trim();
+  try {
+    await prisma.turma.create({
+      data: {
+        nome,
+        poloId: dados.poloId,
+        codigo: codigo || null,
+        modalidade: dados.modalidade || null,
+        entrada: dados.entrada.trim() || null,
+        ano: dados.ano ? parseInt(dados.ano, 10) : null,
+        etapaEnsino: dados.etapaEnsino || null,
+        status: dados.status === "encerrada" ? "ENCERRADA" : "EM_ANDAMENTO",
+        professores: dados.professorIds.length
+          ? { create: dados.professorIds.map((professorId) => ({ professorId })) }
+          : undefined,
+      },
+    });
+  } catch (e) {
+    if (isCodigoDuplicado(e))
+      return { ok: false, message: `O código "${codigo}" já está em uso por outra turma.` };
+    throw e;
+  }
   return { ok: true, message: "Turma criada" };
 }
 
@@ -85,19 +118,29 @@ export async function atualizarTurma(
   if (!nome) return { ok: false, message: "Nome da turma é obrigatório." };
   if (!dados.poloId) return { ok: false, message: "Selecione um polo." };
 
-  await prisma.turma.update({
-    where: { id },
-    data: {
-      nome,
-      poloId: dados.poloId,
-      ano: dados.ano ? parseInt(dados.ano, 10) : null,
-      etapaEnsino: dados.etapaEnsino || null,
-      professores: {
-        deleteMany: {},
-        create: dados.professorIds.map((professorId) => ({ professorId })),
+  const codigo = dados.codigo.trim();
+  try {
+    await prisma.turma.update({
+      where: { id },
+      data: {
+        nome,
+        poloId: dados.poloId,
+        codigo: codigo || null,
+        modalidade: dados.modalidade || null,
+        entrada: dados.entrada.trim() || null,
+        ano: dados.ano ? parseInt(dados.ano, 10) : null,
+        etapaEnsino: dados.etapaEnsino || null,
+        professores: {
+          deleteMany: {},
+          create: dados.professorIds.map((professorId) => ({ professorId })),
+        },
       },
-    },
-  });
+    });
+  } catch (e) {
+    if (isCodigoDuplicado(e))
+      return { ok: false, message: `O código "${codigo}" já está em uso por outra turma.` };
+    throw e;
+  }
   return { ok: true, message: "Dados atualizados" };
 }
 

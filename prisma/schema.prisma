@@ -29,6 +29,10 @@ enum StatusTurma {
   EM_ANDAMENTO
   ENCERRADA
 }
+enum Modalidade {
+  NOVA_EJA
+  SEJAPRO
+}
 enum StatusSolicitacao {
   RECEBIDA
   EM_ANALISE
@@ -76,6 +80,9 @@ model Polo {
 model Turma {
   id          String           @id @default(cuid())
   nome        String
+  codigo      String?          @unique // ex.: "CA-EM-261-A"
+  modalidade  Modalidade?
+  entrada     String?          // período/entrada, ex.: "2026.2"
   ano         Int?
   etapaEnsino String?
   status      StatusTurma      @default(EM_ANDAMENTO)

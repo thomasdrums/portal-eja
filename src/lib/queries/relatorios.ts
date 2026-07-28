@@ -1,5 +1,6 @@
 import { prisma } from "@/lib/prisma";
 import { calcularFrequenciaDeAlunos } from "@/lib/queries/frequencia";
+import { modalidadeLabel } from "@/lib/turma-labels";
 import type { SituacaoAluno, StatusTurma, EtapaAluno } from "@prisma/client";
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -160,6 +161,9 @@ export type RelatorioTurmaRow = {
   id: string;
   nome: string;
   poloNome: string;
+  codigo: string; // "" quando vazio
+  modalidadeLabel: string;
+  entrada: string; // ex.: "2026.2" ("" quando vazio)
   ano: number | null;
   etapaEnsino: string | null;
   status: StatusTurma; // EM_ANDAMENTO | ENCERRADA
@@ -229,6 +233,9 @@ export async function carregarRelatorioTurmas(): Promise<RelatorioTurmasData> {
       id: t.id,
       nome: t.nome,
       poloNome: t.polo?.nome ?? SEM_POLO,
+      codigo: t.codigo ?? "",
+      modalidadeLabel: modalidadeLabel(t.modalidade),
+      entrada: t.entrada ?? "",
       ano: t.ano,
       etapaEnsino: t.etapaEnsino,
       status: t.status,

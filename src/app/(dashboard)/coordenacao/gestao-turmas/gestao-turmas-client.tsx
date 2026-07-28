@@ -6,6 +6,8 @@ import Link from "next/link";
 import { ChevronLeft } from "lucide-react";
 import type { Opcao } from "@/lib/queries/professores";
 import type { TurmaRow } from "@/lib/queries/turmas";
+import type { Modalidade } from "@prisma/client";
+import { MODALIDADES, MODALIDADE_LABEL } from "@/lib/turma-labels";
 import {
   criarTurmaAction,
   atualizarTurmaAction,
@@ -16,6 +18,9 @@ import {
 type Form = {
   nome: string;
   poloId: string;
+  codigo: string;
+  modalidade: "" | Modalidade;
+  entrada: string;
   ano: string;
   etapaEnsino: string;
   professorIds: string[];
@@ -78,7 +83,7 @@ export default function GestaoTurmasClient({
   const [aviso, setAviso] = useState("");
 
   const formVazio: Form = useMemo(
-    () => ({ nome: "", poloId: polos[0]?.id ?? "", ano: "2026", etapaEnsino: ETAPAS[0], professorIds: [] }),
+    () => ({ nome: "", poloId: polos[0]?.id ?? "", codigo: "", modalidade: "", entrada: "", ano: "2026", etapaEnsino: ETAPAS[0], professorIds: [] }),
     [polos],
   );
   const [form, setForm] = useState<Form>(formVazio);
@@ -101,6 +106,9 @@ export default function GestaoTurmasClient({
     setForm({
       nome: t.nome,
       poloId: t.poloId,
+      codigo: t.codigo,
+      modalidade: t.modalidade,
+      entrada: t.entrada,
       ano: t.ano || "2026",
       etapaEnsino: t.etapa || ETAPAS[0],
       professorIds: professores.filter((p) => t.professores.includes(p.nome)).map((p) => p.id),
@@ -118,6 +126,9 @@ export default function GestaoTurmasClient({
     const dados = {
       nome: form.nome,
       poloId: form.poloId,
+      codigo: form.codigo,
+      modalidade: form.modalidade,
+      entrada: form.entrada,
       ano: form.ano,
       etapaEnsino: form.etapaEnsino,
       status: (editando?.status ?? "ativa") as "ativa" | "encerrada",
@@ -170,6 +181,14 @@ export default function GestaoTurmasClient({
 
         <div className="space-y-4 rounded-lg border border-[#E5E7EB] bg-white p-6 shadow-[0_1px_3px_rgba(0,0,0,0.06)]">
           <Input label="Nome da turma" value={form.nome} onChange={(v) => setForm((f) => ({ ...f, nome: v }))} placeholder="Ex.: Turma 26.1" />
+          <div className="grid grid-cols-3 gap-4">
+            <Input label="Código da turma" value={form.codigo} onChange={(v) => setForm((f) => ({ ...f, codigo: v }))} placeholder="Ex.: CA-EM-261-A" />
+            <Input label="Entrada / Período" value={form.entrada} onChange={(v) => setForm((f) => ({ ...f, entrada: v }))} placeholder="Ex.: 2026.2" />
+            <Selecao label="Modalidade" value={form.modalidade} onChange={(v) => setForm((f) => ({ ...f, modalidade: v as "" | Modalidade }))}>
+              <option value="">Não definida</option>
+              {MODALIDADES.map((m) => <option key={m} value={m}>{MODALIDADE_LABEL[m]}</option>)}
+            </Selecao>
+          </div>
           <div className="grid grid-cols-3 gap-4">
             <Selecao label="Polo" value={form.poloId} onChange={(v) => setForm((f) => ({ ...f, poloId: v }))}>
               {polos.map((p) => <option key={p.id} value={p.id}>{p.nome}</option>)}
@@ -276,7 +295,10 @@ export default function GestaoTurmasClient({
             <div className="flex items-center justify-between bg-[#009640] px-5 py-3">
               <div>
                 <span className="font-bold text-white">{t.nome}</span>
-                <span className="ml-3 text-xs text-white/70">{t.poloNome || "sem polo"} · {t.etapa || "—"} · {t.ano || "—"} · {t.qtdAlunos} alunos</span>
+                {t.codigo && <span className="ml-2 rounded bg-white/20 px-1.5 py-0.5 text-[11px] font-semibold text-white">{t.codigo}</span>}
+                <span className="ml-3 text-xs text-white/70">
+                  {[t.poloNome || "sem polo", t.etapa || "—", t.modalidadeLabel, t.entrada || t.ano || "—", `${t.qtdAlunos} alunos`].filter(Boolean).join(" · ")}
+                </span>
               </div>
               <span className={`rounded px-2.5 py-0.5 text-xs font-bold ${t.status === "ativa" ? "bg-white/90 text-[#007A33]" : "bg-white/20 text-white"}`}>
                 {t.status === "ativa" ? "Ativa" : "Encerrada"}

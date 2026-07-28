@@ -86,8 +86,9 @@ export default function AcompanhamentoClient({
         {turmasFiltradas.map((turma) => {
           const subtitulo = [
             turma.poloNome,
+            turma.modalidadeLabel,
             turma.professores.join(", "),
-            turma.ano ? String(turma.ano) : "",
+            turma.entrada || (turma.ano ? String(turma.ano) : ""),
           ]
             .filter(Boolean)
             .join(" · ");
@@ -98,7 +99,10 @@ export default function AcompanhamentoClient({
             >
               <div className="flex flex-wrap items-center justify-between gap-2 bg-[#009640] px-5 py-3.5">
                 <div>
-                  <p className="font-semibold text-white">{turma.nome}</p>
+                  <p className="font-semibold text-white">
+                    {turma.nome}
+                    {turma.codigo && <span className="ml-2 rounded bg-white/20 px-1.5 py-0.5 text-[11px] font-semibold">{turma.codigo}</span>}
+                  </p>
                   <p className="text-xs text-white/70">{subtitulo}</p>
                 </div>
                 <span className="rounded bg-white/20 px-2.5 py-0.5 text-xs font-semibold text-white">
