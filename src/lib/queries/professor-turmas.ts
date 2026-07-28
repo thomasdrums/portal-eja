@@ -1,7 +1,8 @@
 import { prisma } from "@/lib/prisma";
 import { Prisma, type SituacaoAluno as SituacaoDB, type EtapaAluno as EtapaDB } from "@prisma/client";
 import { CAMPOS_VAZIOS, type CamposCompetencia } from "@/lib/regras-notas";
-import { COMPETENCIAS_CONFIG, AREA_CONFIG_ORDER } from "@/lib/competencias-config";
+import { COMPETENCIAS_CONFIG, AREA_CONFIG_ORDER, AREA_CONFIG_POR_SLUG } from "@/lib/competencias-config";
+import { calcularFrequenciaDeAlunos, type FrequenciaAluno } from "@/lib/queries/frequencia";
 import type {
   Turma as TurmaGrade,
   Aluno as AlunoGrade,
@@ -60,15 +61,28 @@ function notasVazias(): AlunoGrade["notas"] {
   return { matematica: {}, linguagens: {}, cienciasNatureza: {}, cienciasHumanas: {} };
 }
 
-function freqVazia(): AlunoGrade["frequencia"] {
+// Converte a frequência CALCULADA (por área) para o formato da grade.
+// totalAulas = aulas exigidas da área; presenças limitadas ao exigido (mesmo
+// critério do "geral"), para que a Freq. Geral do relatório reflita o cálculo real.
+function freqDaCalculada(freq: FrequenciaAluno | undefined): AlunoGrade["frequencia"] {
   const z = () => ({ totalAulas: 0, presencas: 0 });
-  return {
+  const base: AlunoGrade["frequencia"] = {
     matematica: z(),
     linguagens: z(),
     cienciasNatureza: z(),
     cienciasHumanas: z(),
-    interarea: z(),
+    interarea: z(), // interárea é coringa (não é área de frequência própria)
   };
+  if (!freq) return base;
+  for (const area of freq.areas) {
+    const cfg = AREA_CONFIG_POR_SLUG[area.slug];
+    if (!cfg) continue;
+    base[cfg] = {
+      totalAulas: area.totalExigido,
+      presencas: Math.min(area.presencas, area.totalExigido),
+    };
+  }
+  return base;
 }
 
 // Campos do Aluno (banco) que o adaptador consome.
@@ -91,9 +105,9 @@ type AlunoDB = {
 };
 
 // Converte um Aluno do banco para o formato (mock) consumido pelas telas do professor.
-// Dados pessoais/documentação/situação são REAIS; notas/frequência iniciam VAZIAS
-// (a leitura real dessas partes vem nas próximas etapas).
-function adaptarAluno(a: AlunoDB): AlunoGrade {
+// Dados pessoais/documentação/situação são REAIS; a frequência recebe o cálculo REAL
+// (quando informado); as notas iniciam VAZIAS (preenchidas por carregarNotasGradeTurma).
+function adaptarAluno(a: AlunoDB, freq?: FrequenciaAluno): AlunoGrade {
   return {
     id: a.id,
     ra: a.ra ?? "",
@@ -113,7 +127,7 @@ function adaptarAluno(a: AlunoDB): AlunoGrade {
     },
     notas: notasVazias(),
     notasGrade: gradeVazia(),
-    frequencia: freqVazia(),
+    frequencia: freqDaCalculada(freq),
   };
 }
 
@@ -189,7 +203,10 @@ export async function carregarTurmaDoProfessor(
     if (!vinculado) return { acesso: "negado", turma: null };
   }
 
-  // Adapta para o formato (mock) que a GradeNotas consome — notas iniciam VAZIAS.
+  // Frequência REAL calculada (respostas validadas ÷ aulas exigidas) por aluno da turma.
+  const freqMap = await calcularFrequenciaDeAlunos(turma.alunos.map((a) => a.id));
+
+  // Adapta para o formato (mock) que a GradeNotas/RelatorioTurma consomem.
   const turmaGrade: TurmaGrade = {
     id: turma.id,
     nome: turma.nome,
@@ -197,7 +214,7 @@ export async function carregarTurmaDoProfessor(
     etapaEnsino: turma.etapaEnsino ?? "",
     periodoLetivo: turma.ano != null ? String(turma.ano) : "",
     professorResponsavel: "",
-    alunos: turma.alunos.map(adaptarAluno),
+    alunos: turma.alunos.map((a) => adaptarAluno(a, freqMap.get(a.id))),
   };
 
   return { acesso: "ok", turma: turmaGrade };

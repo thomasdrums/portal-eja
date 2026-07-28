@@ -11,12 +11,18 @@ import {
 } from "@/lib/mock-data/professor";
 
 // ── Helpers ──────────────────────────────────────────────
-function freqGeral(aluno: Aluno): number {
+// Resumo da frequência geral do aluno. "sem exigência" = 0 aulas exigidas
+// (todas as competências certificadas → aluno DISPENSADO), tratado como atendido
+// (equivalente a 100% para aprovação), nunca como 0%. Mesma interpretação do
+// cálculo real (src/lib/queries/frequencia.ts: totalExigido 0 → percentual 100).
+type FreqResumo = { semExigencia: true } | { semExigencia: false; percentual: number };
+
+function freqGeral(aluno: Aluno): FreqResumo {
   const areas = Object.values(aluno.frequencia);
   const totalAulas = areas.reduce((s, a) => s + a.totalAulas, 0);
   const totalPresenca = areas.reduce((s, a) => s + a.presencas, 0);
-  if (totalAulas === 0) return 0;
-  return Math.round((totalPresenca / totalAulas) * 100);
+  if (totalAulas === 0) return { semExigencia: true };
+  return { semExigencia: false, percentual: Math.round((totalPresenca / totalAulas) * 100) };
 }
 
 function freqColor(p: number) {
@@ -219,8 +225,17 @@ export default function RelatorioTurma({ turma }: { turma: Turma }) {
                       <span className="block text-xs text-[#9CA3AF]">RA {aluno.ra}</span>
                     </td>
                     <td className="px-4 py-3 text-gray-600">{aluno.cidade}</td>
-                    <td className={`px-4 py-3 text-center font-bold ${freqColor(freq)}`}>
-                      {freq}%
+                    <td className="px-4 py-3 text-center">
+                      {freq.semExigencia ? (
+                        <span
+                          className="inline-block rounded-full bg-[#EAF6EE] px-2.5 py-0.5 text-xs font-semibold text-[#007A33]"
+                          title="Todas as competências certificadas — sem aulas exigidas (frequência atendida)"
+                        >
+                          Dispensado
+                        </span>
+                      ) : (
+                        <span className={`font-bold ${freqColor(freq.percentual)}`}>{freq.percentual}%</span>
+                      )}
                     </td>
                     <td className="px-4 py-3 text-center">
                       <span className={seloClasses(aluno.situacao)}>
